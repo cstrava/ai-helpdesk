@@ -1,0 +1,33 @@
+cat > .gitignore <<'EOF'
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Datasets and trained models
+ml/data/
+ml/models/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Frontend
+node_modules/
+dist/
+coverage/
+
+# Local files
+*.log
+.DS_Store
+Thumbs.db
+EOF
