@@ -37,8 +37,6 @@ def main():
     conflicting_texts = labels_per_text[labels_per_text > 1].index
     conflicts = audit["text"].isin(conflicting_texts)
 
-    # Câte exemple ar rămâne dacă eliminăm conflictele
-    # și păstrăm un singur exemplar pentru fiecare text?
     candidates = audit.loc[~conflicts].drop_duplicates(subset="text")
 
     report = {

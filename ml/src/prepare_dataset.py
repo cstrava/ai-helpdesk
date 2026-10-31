@@ -22,7 +22,6 @@ def main():
 
     df = df.loc[df["text"].ne("") & df["label"].ne("")].copy()
 
-    # Folosit pentru deduplicare și verificarea separării.
     normalized = (
         df["text"]
         .str.lower()
@@ -58,7 +57,6 @@ def main():
         "test": test,
     }
 
-    # Niciun text normalizat nu trebuie să apară în două partiții.
     ids = {
         name: set(frame["text_id"])
         for name, frame in splits.items()

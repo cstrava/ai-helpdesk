@@ -32,7 +32,6 @@ def main():
     dummy.fit([[0]] * len(train), train["label"])
     dummy_predictions = dummy.predict([[0]] * len(validation))
 
-    # Pipeline-ul învață vocabularul exclusiv din datele de train.
     model = Pipeline([
         (
             "tfidf",
@@ -116,7 +115,6 @@ def main():
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Salvăm împreună vectorizatorul și clasificatorul.
     joblib.dump(model, MODEL_DIR / "baseline_svm.joblib")
 
     (REPORT_DIR / "baseline_validation.json").write_text(
