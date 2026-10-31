@@ -1,0 +1,92 @@
+{
+  "seed": 42,
+  "similarity_threshold": 0.95,
+  "grouping": "connected_components_word_tfidf_cosine",
+  "grouping_vocabulary_fit": "original_train",
+  "split_method": "stratified_group_10_folds",
+  "fold_assignment": {
+    "test": [
+      0
+    ],
+    "validation": [
+      1
+    ],
+    "train": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  "rows": 47837,
+  "similarity_edges": 2375,
+  "groups": 46848,
+  "groups_with_multiple_rows": 461,
+  "rows_in_multirow_groups": 1450,
+  "largest_group": 61,
+  "groups_with_multiple_labels": 28,
+  "largest_10_groups": {
+    "741": 61,
+    "1033": 55,
+    "221": 41,
+    "2196": 23,
+    "293": 15,
+    "4909": 15,
+    "405": 13,
+    "813": 13,
+    "677": 12,
+    "2817": 12
+  },
+  "cross_split_group_overlap": false,
+  "splits": {
+    "train": {
+      "rows": 38269,
+      "percentage": 80.0,
+      "sha256": "e85f67d85e5cf851d4c889bf4eca67a3980fe798fd2d4723920d27af9d842f8f",
+      "class_counts": {
+        "Hardware": 10893,
+        "HR Support": 8733,
+        "Access": 5700,
+        "Miscellaneous": 5648,
+        "Storage": 2221,
+        "Purchase": 1971,
+        "Internal Project": 1695,
+        "Administrative rights": 1408
+      }
+    },
+    "validation": {
+      "rows": 4784,
+      "percentage": 10.0,
+      "sha256": "e9e649877b0cbcfa33cf0f23b8047736136699e847773e7eb3cacec1840cec0e",
+      "class_counts": {
+        "Hardware": 1362,
+        "HR Support": 1091,
+        "Access": 712,
+        "Miscellaneous": 706,
+        "Storage": 278,
+        "Purchase": 247,
+        "Internal Project": 212,
+        "Administrative rights": 176
+      }
+    },
+    "test": {
+      "rows": 4784,
+      "percentage": 10.0,
+      "sha256": "a2ffdb6e246ad5323d00024fb81085d0137f5fb5ab0e8d1d64560b88354edf43",
+      "class_counts": {
+        "Hardware": 1362,
+        "HR Support": 1091,
+        "Access": 713,
+        "Miscellaneous": 706,
+        "Storage": 278,
+        "Purchase": 246,
+        "Internal Project": 212,
+        "Administrative rights": 176
+      }
+    }
+  }
+}
