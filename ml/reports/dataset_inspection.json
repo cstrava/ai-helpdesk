@@ -1,0 +1,40 @@
+{
+  "dataset": "Console-AI/IT-helpdesk-synthetic-tickets",
+  "revision": "165693849d955c6da4c00bc8be8e541afec0514e",
+  "status": "candidate_under_review",
+  "synthetic": true,
+  "rows": 500,
+  "columns": [
+    "id",
+    "subject",
+    "description",
+    "priority",
+    "category",
+    "createdAt",
+    "requesterEmail"
+  ],
+  "missing_values": {
+    "id": 0,
+    "subject": 0,
+    "description": 0,
+    "priority": 0,
+    "category": 0,
+    "createdAt": 0,
+    "requesterEmail": 0
+  },
+  "empty_texts": 0,
+  "duplicate_texts": 0,
+  "category_counts": {
+    "Software": 231,
+    "Account": 71,
+    "Network": 68,
+    "Security": 42,
+    "Communication": 24,
+    "Hardware": 22,
+    "RemoteWork": 20,
+    "Training": 12,
+    "Infrastructure": 7,
+    "Licensing": 2,
+    "Performance": 1
+  }
+}
