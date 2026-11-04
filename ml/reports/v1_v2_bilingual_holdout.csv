@@ -1,0 +1,33 @@
+scenario_id,label,language,text,v1,v2
+access_5,Access,ro,Colega mi-a trimis linkul către calendarul de gardă. Îl poate deschide toată echipa în afară de mine. Îmi dați acces?,Hardware,Administrative rights
+access_6,Access,ro,"Dupa schimbarea numelui, portalul nu imi mai recunoaste utilizatorul. Cum ma conectez?",Access,Access
+administrative_rights_5,Administrative rights,ro,"Pot deschide proiectul din Git, dar nu pot proteja branchul principal. Am nevoie de rolul de maintainer.",Hardware,Internal Project
+administrative_rights_6,Administrative rights,ro,Pe terminalul de inventar am deja cont. Cine aproba ridicarea temporara a privilegiilor pentru a modifica registrul Windows?,Access,Access
+hr_support_5,HR Support,ro,"Am fost în delegație vineri, dar în pontaj figurez absent. Puteți corecta ziua?",Hardware,HR Support
+hr_support_6,HR Support,ro,Cand intra in vigoare noul meu beneficiu de transport pentru naveta?,Hardware,HR Support
+hardware_5,Hardware,ro,La proiector imaginea are o pată violet chiar și în meniul propriu. Îl puteți verifica?,Hardware,Administrative rights
+hardware_6,Hardware,ro,Microfonul USB are mufa indoita si nu mai este detectat pe niciun calculator.,Hardware,Hardware
+internal_project_5,Internal Project,ro,Comitetul a aprobat suspendarea proiectului intern Mesteacăn. Actualizați starea proiectului în portofoliu.,Miscellaneous,Internal Project
+internal_project_6,Internal Project,ro,"Pentru proiectul intern Luna, versiunea aprobata a planului de livrare trebuie inregistrata ca referinta oficiala.",Hardware,Internal Project
+miscellaneous_5,Miscellaneous,ro,În ghidul pentru vizitatori sunt două ore diferite pentru închiderea recepției. Care este cea corectă?,Hardware,Access
+miscellaneous_6,Miscellaneous,ro,Pagina despre colectarea selectiva trimite angajatii la vechiul punct de reciclare. Puteti actualiza instructiunile?,Hardware,Storage
+purchase_5,Purchase,ro,Departamentul financiar a aprobat oferta pentru trei proiectoare. Puteți emite comanda către furnizor?,Hardware,Purchase
+purchase_6,Purchase,ro,"Furnizorul a facturat sase microfoane USB, dar comanda aprobata avea doar patru. Cine poate corecta comanda?",Hardware,Purchase
+storage_5,Storage,ro,"Dosarul de proiect există încă, dar două subdirectoare lipsesc după migrare. Vă rog să le recuperați din arhivă.",Miscellaneous,Internal Project
+storage_6,Storage,ro,Spatiul personal a ramas la 5 GB dupa mutarea pe noul server. Puteti aplica din nou cota de 15 GB aprobata?,Hardware,Storage
+access_5,Access,en,My colleague sent me the on-call calendar link. Everyone on the team except me can open it. Could I have access?,Hardware,Hardware
+access_6,Access,en,After my name changed the portal stopped recognizing my username. How do I sign in?,Miscellaneous,Access
+administrative_rights_5,Administrative rights,en,"I can open the Git project, but I can't protect the main branch. I need the maintainer role.",Access,Access
+administrative_rights_6,Administrative rights,en,I already have an account on the inventory terminal. Who approves temporary elevation to edit the Windows registry?,Access,Access
+hr_support_5,HR Support,en,I was on a business trip on Friday but my timesheet says I was absent. Could you correct it?,HR Support,HR Support
+hr_support_6,HR Support,en,When does my new commuter travel benefit take effect?,Hardware,HR Support
+hardware_5,Hardware,en,The projector shows a purple spot even in its own menu. Could you inspect it?,Hardware,Hardware
+hardware_6,Hardware,en,The USB microphone has a bent plug and is no longer detected on any computer.,Hardware,Hardware
+internal_project_5,Internal Project,en,The committee approved suspending the internal Mesteacăn project. Please update its status in the portfolio.,Miscellaneous,Miscellaneous
+internal_project_6,Internal Project,en,"For the internal Luna project, please register the approved delivery plan as the official baseline.",Miscellaneous,Internal Project
+miscellaneous_5,Miscellaneous,en,The visitor guide lists two closing times for reception. Which one is correct?,Hardware,Access
+miscellaneous_6,Miscellaneous,en,The recycling page directs employees to the old collection point. Can you update the instructions?,Hardware,Storage
+purchase_5,Purchase,en,Finance approved the quote for three projectors. Can you issue the order to the supplier?,Hardware,Purchase
+purchase_6,Purchase,en,"The supplier invoiced six USB microphones, but the approved order was for four. Who can correct the order?",Hardware,Purchase
+storage_5,Storage,en,"The project folder still exists, but two subfolders are missing after migration. Please recover them from the archive.",Storage,Storage
+storage_6,Storage,en,My home directory stayed at 5 GB after the server migration. Can you reapply my approved 15 GB quota?,Hardware,Storage
