@@ -1,0 +1,218 @@
+{
+  "dataset": "ro_tickets_v1",
+  "description": "Small manually authored Romanian evaluation set",
+  "model": "xlm_roberta_helpdesk_v1",
+  "correct": 9,
+  "total": 24,
+  "accuracy": 0.375,
+  "macro_f1": 0.32387955182072825,
+  "per_class": {
+    "Access": {
+      "precision": 0.5,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.5714285714285714,
+      "support": 3.0
+    },
+    "Administrative rights": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 3.0
+    },
+    "HR Support": {
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666,
+      "f1-score": 0.6666666666666666,
+      "support": 3.0
+    },
+    "Hardware": {
+      "precision": 0.21428571428571427,
+      "recall": 1.0,
+      "f1-score": 0.35294117647058826,
+      "support": 3.0
+    },
+    "Internal Project": {
+      "precision": 1.0,
+      "recall": 0.3333333333333333,
+      "f1-score": 0.5,
+      "support": 3.0
+    },
+    "Miscellaneous": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 3.0
+    },
+    "Purchase": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 3.0
+    },
+    "Storage": {
+      "precision": 1.0,
+      "recall": 0.3333333333333333,
+      "f1-score": 0.5,
+      "support": 3.0
+    },
+    "accuracy": 0.375,
+    "macro avg": {
+      "precision": 0.4226190476190476,
+      "recall": 0.37499999999999994,
+      "f1-score": 0.32387955182072825,
+      "support": 24.0
+    },
+    "weighted avg": {
+      "precision": 0.4226190476190476,
+      "recall": 0.375,
+      "f1-score": 0.3238795518207283,
+      "support": 24.0
+    }
+  },
+  "predictions": [
+    {
+      "id": "ro01",
+      "text": "Mi-am schimbat telefonul și codurile de autentificare ajung tot pe cel vechi. Cum intru din nou în portal?",
+      "label": "Access",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro02",
+      "text": "Contul meu s-a blocat după câteva încercări. Mă puteți debloca?",
+      "label": "Access",
+      "prediction": "Access"
+    },
+    {
+      "id": "ro03",
+      "text": "Am uitat parola de la intranet si linkul de resetare a expirat.",
+      "label": "Access",
+      "prediction": "Access"
+    },
+    {
+      "id": "ro04",
+      "text": "Pot intra pe laptop, dar instalarea driverului îmi cere parola unui administrator. Am nevoie de aprobare pentru instalare.",
+      "label": "Administrative rights",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro05",
+      "text": "Trebuie să repornesc un serviciu pe serverul de test. Îmi puteți acorda temporar drepturi sudo?",
+      "label": "Administrative rights",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro06",
+      "text": "Am acces la aplicatie ca utilizator si trebuie sa pot administra rolurile colegilor. Cine imi poate acorda acest drept?",
+      "label": "Administrative rights",
+      "prediction": "Access"
+    },
+    {
+      "id": "ro07",
+      "text": "Mi-am schimbat adresa și vreau să fie actualizată în dosarul de personal.",
+      "label": "HR Support",
+      "prediction": "Access"
+    },
+    {
+      "id": "ro08",
+      "text": "În pontaj îmi lipsesc două zile de concediu deja aprobate. Mă ajutați cu o corecție?",
+      "label": "HR Support",
+      "prediction": "HR Support"
+    },
+    {
+      "id": "ro09",
+      "text": "Un coleg isi incheie contractul vineri. Unde trimit formularul de plecare?",
+      "label": "HR Support",
+      "prediction": "HR Support"
+    },
+    {
+      "id": "ro10",
+      "text": "Laptopul se stinge imediat ce scot încărcătorul, deși bateria arată 80%.",
+      "label": "Hardware",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro11",
+      "text": "Tasta Enter de pe tastatura de la birou a rămas blocată fizic.",
+      "label": "Hardware",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro12",
+      "text": "Monitorul palpaie si cu alt cablu. Puteti verifica echipamentul?",
+      "label": "Hardware",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro13",
+      "text": "Pentru proiectul intern Atlas avem nevoie de un cod pentru noua etapă. Îl puteți adăuga în fișa proiectului?",
+      "label": "Internal Project",
+      "prediction": "Internal Project"
+    },
+    {
+      "id": "ro14",
+      "text": "În planul proiectului intern Orion apare încă responsabilul vechi. Vă rog să actualizați responsabilul etapei de testare.",
+      "label": "Internal Project",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro15",
+      "text": "S-a aprobat prelungirea proiectului intern Delta. Va rog sa actualizati data de final in registrul de proiecte.",
+      "label": "Internal Project",
+      "prediction": "Miscellaneous"
+    },
+    {
+      "id": "ro16",
+      "text": "În directorul telefonic intern apare extensia veche a recepției. Unde trimit corectura?",
+      "label": "Miscellaneous",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro17",
+      "text": "Pe pagina de intranet, linkul către meniul cantinei deschide programul de săptămâna trecută.",
+      "label": "Miscellaneous",
+      "prediction": "HR Support"
+    },
+    {
+      "id": "ro18",
+      "text": "Invitatia recurenta pentru sedinta generala arata doua sali diferite. Puteti corecta locatia?",
+      "label": "Miscellaneous",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro19",
+      "text": "Am aprobarea managerului pentru două monitoare noi. Unde depun cererea de achiziție?",
+      "label": "Purchase",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro20",
+      "text": "Vă rog să-mi comunicați stadiul comenzii pentru stația de andocare cerută săptămâna trecută.",
+      "label": "Purchase",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro21",
+      "text": "Avem oferta furnizorului pentru zece casti. Ne ajutati sa emitem comanda?",
+      "label": "Purchase",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro22",
+      "text": "Folderul comun al echipei a ajuns la limita de spațiu. Avem nevoie de încă 50 GB.",
+      "label": "Storage",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro23",
+      "text": "Am șters din greșeală un director de pe discul partajat. Se poate restaura din copia de aseară?",
+      "label": "Storage",
+      "prediction": "Hardware"
+    },
+    {
+      "id": "ro24",
+      "text": "Nu mai incap fisierele de log pe volumul de arhivare. Puteti mari capacitatea?",
+      "label": "Storage",
+      "prediction": "Storage"
+    }
+  ]
+}

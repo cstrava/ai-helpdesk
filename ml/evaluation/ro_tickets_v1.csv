@@ -1,0 +1,25 @@
+id,text,label
+ro01,"Mi-am schimbat telefonul și codurile de autentificare ajung tot pe cel vechi. Cum intru din nou în portal?",Access
+ro02,"Contul meu s-a blocat după câteva încercări. Mă puteți debloca?",Access
+ro03,"Am uitat parola de la intranet si linkul de resetare a expirat.",Access
+ro04,"Pot intra pe laptop, dar instalarea driverului îmi cere parola unui administrator. Am nevoie de aprobare pentru instalare.",Administrative rights
+ro05,"Trebuie să repornesc un serviciu pe serverul de test. Îmi puteți acorda temporar drepturi sudo?",Administrative rights
+ro06,"Am acces la aplicatie ca utilizator si trebuie sa pot administra rolurile colegilor. Cine imi poate acorda acest drept?",Administrative rights
+ro07,"Mi-am schimbat adresa și vreau să fie actualizată în dosarul de personal.",HR Support
+ro08,"În pontaj îmi lipsesc două zile de concediu deja aprobate. Mă ajutați cu o corecție?",HR Support
+ro09,"Un coleg isi incheie contractul vineri. Unde trimit formularul de plecare?",HR Support
+ro10,"Laptopul se stinge imediat ce scot încărcătorul, deși bateria arată 80%.",Hardware
+ro11,"Tasta Enter de pe tastatura de la birou a rămas blocată fizic.",Hardware
+ro12,"Monitorul palpaie si cu alt cablu. Puteti verifica echipamentul?",Hardware
+ro13,"Pentru proiectul intern Atlas avem nevoie de un cod pentru noua etapă. Îl puteți adăuga în fișa proiectului?",Internal Project
+ro14,"În planul proiectului intern Orion apare încă responsabilul vechi. Vă rog să actualizați responsabilul etapei de testare.",Internal Project
+ro15,"S-a aprobat prelungirea proiectului intern Delta. Va rog sa actualizati data de final in registrul de proiecte.",Internal Project
+ro16,"În directorul telefonic intern apare extensia veche a recepției. Unde trimit corectura?",Miscellaneous
+ro17,"Pe pagina de intranet, linkul către meniul cantinei deschide programul de săptămâna trecută.",Miscellaneous
+ro18,"Invitatia recurenta pentru sedinta generala arata doua sali diferite. Puteti corecta locatia?",Miscellaneous
+ro19,"Am aprobarea managerului pentru două monitoare noi. Unde depun cererea de achiziție?",Purchase
+ro20,"Vă rog să-mi comunicați stadiul comenzii pentru stația de andocare cerută săptămâna trecută.",Purchase
+ro21,"Avem oferta furnizorului pentru zece casti. Ne ajutati sa emitem comanda?",Purchase
+ro22,"Folderul comun al echipei a ajuns la limita de spațiu. Avem nevoie de încă 50 GB.",Storage
+ro23,"Am șters din greșeală un director de pe discul partajat. Se poate restaura din copia de aseară?",Storage
+ro24,"Nu mai incap fisierele de log pe volumul de arhivare. Puteti mari capacitatea?",Storage
