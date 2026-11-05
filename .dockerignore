@@ -1,0 +1,10 @@
+**
+!backend/
+!backend/Dockerfile
+!backend/requirements.runtime.txt
+!backend/requirements.lock.txt
+!backend/app/
+!backend/app/**
+**/__pycache__/
+**/*.pyc
+**/.env

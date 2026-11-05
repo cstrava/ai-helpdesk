@@ -811,3 +811,16 @@ def create_ticket_from_conversation(
         ) from exc
 
     return result
+
+@app.get("/health")
+def health():
+    try:
+        with connect_db() as connection:
+            connection.execute("SELECT 1")
+    except psycopg.OperationalError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Baza de date este momentan indisponibilă.",
+        ) from exc
+
+    return {"status": "ok"}
