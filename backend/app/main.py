@@ -937,3 +937,7 @@ def ticket_events(ticket_id: UUID, user=Depends(current_user)):
 from .collaboration import install_collaboration
 
 install_collaboration(app)
+
+from .ml_feedback import install_ml_feedback
+
+install_ml_feedback(app)
