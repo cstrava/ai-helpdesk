@@ -72,7 +72,7 @@ Serviciile au `restart: unless-stopped`. API așteaptă PostgreSQL și Ollama s�
 
 ## Migrări și date existente
 
-Migrarea 005 este necesară pentru colaborare. Păstrează datele și ownerii existenți; adaugă prioritate normal, versiune 0 și responsabil neatribuit. Datele necunoscute nu sunt inventate. Fă backup și verifică restore înainte de upgrade, conform [ghidului de operare](docs/OPERATIONS.md).
+Migrările 005–007 sunt necesare pentru funcțiile noi: 005 colaborarea și istoricul tichetului, 006 impactul/prioritatea/dashboardul/notificările, 007 revizuirea explicită a categoriei pentru evaluare ML. Păstrează datele și ownerii existenți; prioritatea tichetelor vechi devine normal, iar datele istorice necunoscute nu sunt inventate. Fă backup și verifică restore înainte de upgrade, conform [ghidului de operare](docs/OPERATIONS.md).
 
 ```bash
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
