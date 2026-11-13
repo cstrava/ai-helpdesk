@@ -496,3 +496,92 @@ def test_support_workspace_filters_priority_dashboard_and_notifications(client, 
     assert status_change.status_code == 200
     assert any(item["kind"] == "status" for item in client.get("/notifications").json())
     assert agent_id == claimed.json()["assignee_id"]
+
+
+def test_explicit_category_reviews_export_minimal_data_and_invalidate(client, support, test_db):
+    conversation, _, created = ticket(client)
+    ticket_id = created["id"]
+    with test_db() as db:
+        db.execute("UPDATE tickets SET title='=1+1' WHERE id=%s", (ticket_id,))
+    path = f"/tickets/{ticket_id}/category-review"
+    request_id = str(uuid4())
+    body_data = {
+        "verified_category": "Hardware",
+        "request_id": request_id,
+        "reason": "Reviewed with the support taxonomy.",
+    }
+    assert client.post(path, json=body_data).status_code == 403
+    assert client.get(path).status_code == 403
+    assert client.get("/support/category-review-export").status_code == 403
+
+    reviewed = support.post(path, json=body_data)
+    assert reviewed.status_code == 200
+    assert reviewed.json()["verified_category"] == "Hardware"
+    assert reviewed.json()["model_version"] == "test-classifier"
+    assert reviewed.json()["text_sha256"]
+    assert support.post(path, json=body_data).json()["id"] == reviewed.json()["id"]
+    assert support.get(path).json()["review"]["id"] == reviewed.json()["id"]
+    assert (
+        support.post(
+            path,
+            json={**body_data, "verified_category": "Purchase"},
+        ).status_code
+        == 409
+    )
+    assert client.get(f"/tickets/{ticket_id}").json()["final_category"] == "Access"
+
+    internal = support.post(
+        f"/tickets/{ticket_id}/messages",
+        json=body("PRIVATE_NOTE_MUST_NOT_EXPORT", visibility="internal"),
+    )
+    assert internal.status_code == 201
+    exported = support.get("/support/category-review-export")
+    assert exported.status_code == 200
+    assert exported.headers["content-type"].startswith("text/csv")
+    assert "PRIVATE_NOTE_MUST_NOT_EXPORT" not in exported.text
+    assert "test-password-only" not in exported.text
+    assert "verified_category" not in exported.text
+    assert "reviewer_id" in exported.text
+    assert ticket_id in exported.text
+    assert "'=1+1" in exported.text
+
+    corrected_review = support.post(
+        path,
+        json={"verified_category": "Miscellaneous", "request_id": str(uuid4())},
+    )
+    assert corrected_review.status_code == 200
+    assert corrected_review.json()["id"] != reviewed.json()["id"]
+    assert "Miscellaneous" in support.get("/support/category-review-export").text
+    assert support.get(path).json()["review"]["id"] == corrected_review.json()["id"]
+
+    changed = support.patch(
+        f"/tickets/{ticket_id}",
+        json={"final_category": "Purchase", "expected_version": 0},
+    )
+    assert changed.status_code == 200
+    assert support.get(path).json()["review"] is None
+    assert support.get("/support/category-review-export").text.splitlines() == [
+        "ticket_id,text,label,text_sha256,model_version,reviewer_id,reviewed_at"
+    ]
+
+    next_review = support.post(
+        path,
+        json={"verified_category": "Purchase", "request_id": str(uuid4())},
+    )
+    assert next_review.status_code == 200
+    with test_db() as db:
+        db.execute("UPDATE tickets SET title='edited title' WHERE id=%s", (ticket_id,))
+    assert support.get("/support/category-review-export").text.splitlines() == [
+        "ticket_id,text,label,text_sha256,model_version,reviewer_id,reviewed_at"
+    ]
+    retried_review = support.post(
+        path,
+        json={"verified_category": "Purchase", "request_id": str(uuid4())},
+    )
+    assert retried_review.status_code == 200
+    with test_db() as db:
+        db.execute("UPDATE tickets SET text='changed description' WHERE id=%s", (ticket_id,))
+    assert support.get("/support/category-review-export").text.splitlines() == [
+        "ticket_id,text,label,text_sha256,model_version,reviewer_id,reviewed_at"
+    ]
+    assert client.get(f"/conversations/{conversation}").status_code == 200

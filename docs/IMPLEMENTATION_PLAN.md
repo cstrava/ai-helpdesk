@@ -23,9 +23,9 @@ Bază verificată: branch implicit `feature/data-pipeline`, commit `8474796`, wo
 |---|---|---|
 | 1 Stabilitate | Instalare curată, typecheck inclusiv Node, lint/test/build; recuperare confirmare după răspuns pierdut fără duplicate; sessionStorage per cont/conversație cu ștergere la logout; respingere explicită a schemelor legacy parțiale și păstrarea datelor | Implementată pe `fix/application-reliability`; verificări locale trecute; [CI push reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43454447275), [PR #1](https://github.com/cstrava/ai-helpdesk/pull/1) |
 | 2 Colaborare | Fir public separat de AI, note interne invizibile userilor, mesaje idempotente, atribuiri concurente protejate, rezolvare cu mesaj și redeschidere cu motiv; API/UI și teste de izolare | Implementată pe `feat/ticket-collaboration`, bază PR #1; verificări locale și reale trecute, CI nou în așteptare |
-| 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Implementată pe `feat/support-workspace`; 56 backend, 23 frontend și 4 Playwright desktop/mobil trecute, lint/typecheck/build trecute. CI remote pentru acest branch încă neexecutat |
-| 4 Feedback ML | Revizuire explicită invalidabilă, export minimal support-only, evaluare reproductibilă cu proveniență și metrici RO/EN separate; fără reantrenare sau înlocuirea modelului | Neîncepută |
-| 5 Integrare și documentație | E2E desktop/mobil pentru flux complet, migrare de la zero și upgrade, restart/Nginx, RO/EN real în mediu izolat, instrucțiuni backup/restore/demo și CI final | Neîncepută |
+| 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Implementată pe `feat/support-workspace`; 56 backend, 23 frontend și 4 Playwright desktop/mobil trecute, lint/typecheck/build trecute; [CI reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43466142551) și al doilea push [reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43466211044) |
+| 4 Feedback ML | Revizuire explicită invalidabilă, export minimal support-only, evaluare reproductibilă cu proveniență și metrici RO/EN separate; fără reantrenare sau înlocuirea modelului | Implementată local pe `feat/ml-feedback-evaluation`; 57 backend, 24 frontend și 4 Playwright trecute; lint/typecheck/build și build Docker trecute. Evaluare CPU realizată; publicarea și CI sunt încă în așteptare |
+| 5 Integrare și documentație | E2E desktop/mobil pentru flux complet, migrare de la zero și upgrade, restart/Nginx, RO/EN real în mediu izolat, instrucțiuni backup/restore/demo și CI final | În lucru; verificarea integrată și demo final rămân |
 
 Reguli: baza personală nu este fixture; testele folosesc PostgreSQL separat. Nu publicăm date, exporturi, secrete sau modele. PR-uri tematice, eventual în lanț, fără force-push sau merge. Etapele neterminate rămân marcate explicit.
 
@@ -105,9 +105,9 @@ La 9 noiembrie, CI era configurat, dar nu exista o execuție remote. La 13 noiem
 
 Etapele 1–2 nu înseamnă finalizarea întregului proiect. Rămân:
 
-1. Etapa 3: funcțiile sunt implementate local: filtre atribuite mie/neatribuite/prioritate; impact opțional declarat de user; prioritate editabilă și auditată; dashboard pe intervalul cerut; notificări persistente cu polling, marcate ca citite și deschidere tichet. Rămân de verificat E2E prin integrarea Nginx și CI remote pentru branch.
-2. Etapa 4: revizuire ML explicită invalidabilă, export support-only minimal, evaluare reproductibilă v1/v2/baseline cu metrici separate și raportarea regresiei pe validarea originală. Nu s-au reantrenat sau înlocuit modele.
-3. Etapa 5: verificare integrată a funcțiilor viitoare, demo final complet, audit mai larg de accesibilitate/contrast și documentație finală actualizată.
+1. Etapa 3: funcțiile sunt implementate, 56 backend/23 frontend și 4 Playwright trecute; ambele rulări Actions au trecut. E2E Playwright acoperă fluxul principal, nu Nginx pentru funcțiile noi.
+2. Etapa 4: review/export și evaluarea reproductibilă implementate local. Evaluarea a raportat +37.5 pp accuracy v2 față de v1 pe pilotul bilingv sintetic (16 scenarii/limbă), dar -6.56 pp pe validarea grouped EN care nu este holdout independent; vezi `docs/ML_EVALUATION.md`. 57 backend/24 frontend/4 Playwright, lint/typecheck/build și build Docker au trecut. Mai rămân push-ul și CI.
+3. Etapa 5: rămân verificarea integrării prin Nginx, migrare de la zero și upgrade, restart/persistență, fluxuri RO/EN cu modele reale în mediu izolat și verificarea finală a documentației/accesibilității.
 
 ### Verificări etapa 3 — 2026-11-13
 

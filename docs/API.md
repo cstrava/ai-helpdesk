@@ -77,3 +77,15 @@ Prioritatea este `low`, `normal`, `high` sau `urgent`; pentru datele vechi migra
 Notificările sunt persistente și deduplicate în tranzacția acțiunii-sursă. Răspunsurile publice notifică cealaltă parte (proprietarul și agentul atribuit); dacă tichetul este neatribuit, răspunsul proprietarului notifică echipa support. Notele interne nu notifică. Atribuirea și schimbarea statusului notifică proprietarul și agentul relevant, exceptând actorul. Polling-ul UI este la 30 secunde; nu se trimit emailuri.
 
 Dashboardul folosește o fereastră mobilă `[acum - days, acum]`, filtrată după `tickets.created_at`. Numerele pe status, categorie și prioritate și totalul neatribuit descriu tichetele create în interval. Primul răspuns este cel mai timpuriu mesaj public (`reply` sau `resolution`) al unui autor support, minus `tickets.created_at`; notele interne și mesajele user/AI sunt excluse. Prima rezolvare folosește `first_resolved_at - created_at`, câmp stabilit la prima tranziție în resolved. Mediile includ doar tichetele cu eveniment cunoscut; numărul fără eveniment este raportat separat. Datele istorice necunoscute rămân necunoscute. Valorile sunt descriptive, nu SLA-uri contractuale.
+
+## Revizuire și export ML — etapa 4
+
+| Endpoint | Reguli |
+|---|---|
+| `POST /tickets/{id}/category-review` | numai support; `verified_category`, `request_id` UUID și `reason` opțional (maximum 1000 caractere); salvează reviewerul, timpul, versiunea modelului tichetului și hash-ul textului exact folosit pentru clasificare |
+| `GET /tickets/{id}/category-review` | numai support; returnează revizuirea activă sau `review: null` |
+| `GET /support/category-review-export?limit=5000` | numai support; CSV cu exemple active aprobate explicit, limită 1–10000 |
+
+Corectarea `final_category` nu aprobă automat o mostră. Revizuirea păstrează eticheta separată. O modificare ulterioară a titlului, descrierii sau categoriei finale invalidează revizuirea prin trigger DB; review-ul vechi rămâne pentru proveniență, dar nu mai este exportabil. Un retry identic cu același request ID întoarce aceeași înregistrare; reutilizarea lui cu altă etichetă/motiv produce 409.
+
+Exportul conține doar `ticket_id`, textul de clasificare (titlu + descriere), `label`, hash-ul textului, `model_version`, `reviewer_id` și `reviewed_at`. Exclude conversația AI, răspunsurile și notele interne, emailuri, parole și tokenuri. Valorile text care încep cu caractere interpretabile ca formule de spreadsheet sunt prefixate cu apostrof în CSV; hash-ul rămâne cel al textului original din tichet. CSV-ul descărcat este local și nu trebuie comis în Git. Înainte de reutilizare, suportul trebuie să verifice și să anonimizeze manual textul; revizuirea categoriei nu garantează că textul nu conține date personale.

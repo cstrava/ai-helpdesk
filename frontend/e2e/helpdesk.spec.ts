@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("login → conversation → editable draft → confirmation → ticket → restored history", async ({
   page,
@@ -131,8 +132,49 @@ test("login → conversation → editable draft → confirmation → ticket → 
     fullPage: true,
   });
   await page
+    .getByLabel("Etichetă verificată", { exact: true })
+    .selectOption("Hardware");
+  await page
+    .getByLabel("Motiv (opțional)", { exact: true })
+    .fill("Confirmed during the synthetic support walkthrough.");
+  await page
+    .getByRole("button", { name: "Marchează ca revizuit", exact: true })
+    .click();
+  await expect(page.getByText(/Exemplu revizuit la/)).toBeVisible();
+  await page
     .getByRole("button", { name: "Închide detaliile", exact: true })
     .click();
+  const approvedExport = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Exportă exemple revizuite", exact: true })
+    .click();
+  const approvedFile = await approvedExport;
+  const approvedPath = testInfo.outputPath("approved-examples.csv");
+  await approvedFile.saveAs(approvedPath);
+  const approvedCsv = await readFile(approvedPath, "utf8");
+  expect(approvedCsv).toContain(title);
+  expect(approvedCsv).toContain("Hardware");
+  expect(approvedCsv).not.toContain("Synthetic private diagnosis");
+
+  await page.getByRole("button", { name: title, exact: true }).click();
+  await page
+    .getByLabel("Categoria finală", { exact: true })
+    .selectOption("Purchase");
+  await page.getByRole("button", { name: "Salvează modificările" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: title, exact: true }).click();
+  await expect(page.getByText(/Exemplu revizuit la/)).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Închide detaliile", exact: true })
+    .click();
+  const invalidatedExport = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Exportă exemple revizuite", exact: true })
+    .click();
+  const invalidatedFile = await invalidatedExport;
+  const invalidatedPath = testInfo.outputPath("invalidated-examples.csv");
+  await invalidatedFile.saveAs(invalidatedPath);
+  expect((await readFile(invalidatedPath, "utf8")).trim().split("\n")).toHaveLength(1);
   await page
     .getByRole("button", { name: "Deconectare", exact: true })
     .filter({ visible: true })

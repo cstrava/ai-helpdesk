@@ -1,0 +1,1402 @@
+{
+  "schema_version": 1,
+  "evaluation_config": {
+    "grouping": "connected_components_word_tfidf_cosine",
+    "split_method": "stratified_group_10_folds",
+    "scenario_grouping": "one holdout row contains both RO and EN translations; group_id is scenario_id",
+    "translation_train_holdout_overlap": false,
+    "batch_size": 8,
+    "max_length": 256,
+    "device": "cpu",
+    "inference_only": true,
+    "holdout_policy": "v2 is evaluated only on the paired bilingual pilot holdout, never on grouped_test",
+    "validation_caveat": "The grouped English validation split was included as validation data in the v2 training archive; this score is not an independent holdout.",
+    "grouped_split_seed": 42,
+    "similarity_threshold": 0.95,
+    "grouped_split_cross_overlap": false,
+    "torch_version": "2.11.0+cpu",
+    "transformers_version": "5.16.1",
+    "scikit_learn_version": "1.9.1",
+    "v2_training_configuration_available": false,
+    "v2_training_configuration_note": "No versioned v2 trainer or complete training configuration was found; weights, model config, and available input data are hashed, but this does not reproduce v2 training."
+  },
+  "dataset_hashes": {
+    "grouped_train": "e85f67d85e5cf851d4c889bf4eca67a3980fe798fd2d4723920d27af9d842f8f",
+    "grouped_validation": "e9e649877b0cbcfa33cf0f23b8047736136699e847773e7eb3cacec1840cec0e",
+    "v2_training_pairs": "617d02d0c0ebcc110f87ec6c40d4fadb8c95a2a5569fb73847b1e8444a668350",
+    "v2_holdout_pairs": "8daa70e2bfe3ce04905dde4a9eebf0f25fee66dedec9d8383f826369f33cac58",
+    "v2_mixed_training_data": "f8e04930d5a17c20ac4d18ba10d6088a03fe2e34d46a5ca79286e4d8125a9821"
+  },
+  "models": {
+    "baseline": {
+      "local_id": "ml/models/grouped/baseline_svm.joblib",
+      "artifact_sha256": "46b8aad07c3346ab5fccef5bf8560edfc85394707ede24ed3f1bfeb78ca01d7c",
+      "version": "tfidf_linear_svm_grouped_v1"
+    },
+    "v1": {
+      "local_id": "ml/models/xlm_roberta_helpdesk_v1/best_model",
+      "config_sha256": "0ced5867114f11006789d75cf6ba6d1d791dbc0c04ae26eca22a56157b09c1f6",
+      "weights_sha256": "55ab0e783721afe03888fb22681452f28889c7085b01b2de1bf653d050bc0b82",
+      "version": "xlm_roberta_helpdesk_v1"
+    },
+    "v2": {
+      "local_id": "ml/models/xlm_roberta_helpdesk_v2/model",
+      "config_sha256": "0ced5867114f11006789d75cf6ba6d1d791dbc0c04ae26eca22a56157b09c1f6",
+      "weights_sha256": "9e9450b765c6070fa9a7853408e89d3c98770956d4a43df1b2f6e10b2f6beed8",
+      "version": "xlm_roberta_helpdesk_v2"
+    }
+  },
+  "grouped_english_validation": {
+    "baseline": {
+      "rows": 4784,
+      "accuracy": 0.8612040133779264,
+      "macro_f1": 0.8559650320625454,
+      "per_class": {
+        "Access": {
+          "precision": 0.9123563218390804,
+          "recall": 0.8918539325842697,
+          "f1": 0.9019886363636364,
+          "support": 712
+        },
+        "Administrative rights": {
+          "precision": 0.7784431137724551,
+          "recall": 0.7386363636363636,
+          "f1": 0.7580174927113703,
+          "support": 176
+        },
+        "HR Support": {
+          "precision": 0.8669097538742023,
+          "recall": 0.8716773602199817,
+          "f1": 0.8692870201096892,
+          "support": 1091
+        },
+        "Hardware": {
+          "precision": 0.8531365313653136,
+          "recall": 0.8487518355359766,
+          "f1": 0.8509385351490615,
+          "support": 1362
+        },
+        "Internal Project": {
+          "precision": 0.8193832599118943,
+          "recall": 0.8773584905660378,
+          "f1": 0.8473804100227791,
+          "support": 212
+        },
+        "Miscellaneous": {
+          "precision": 0.826629680998613,
+          "recall": 0.8441926345609065,
+          "f1": 0.8353188507358094,
+          "support": 706
+        },
+        "Purchase": {
+          "precision": 0.9218106995884774,
+          "recall": 0.9068825910931174,
+          "f1": 0.9142857142857143,
+          "support": 247
+        },
+        "Storage": {
+          "precision": 0.8705035971223022,
+          "recall": 0.8705035971223022,
+          "f1": 0.8705035971223022,
+          "support": 278
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "Access",
+          "Administrative rights",
+          "HR Support",
+          "Hardware",
+          "Internal Project",
+          "Miscellaneous",
+          "Purchase",
+          "Storage"
+        ],
+        "counts": [
+          [
+            635,
+            4,
+            16,
+            27,
+            8,
+            12,
+            3,
+            7
+          ],
+          [
+            3,
+            130,
+            4,
+            31,
+            1,
+            3,
+            3,
+            1
+          ],
+          [
+            18,
+            5,
+            951,
+            59,
+            15,
+            33,
+            3,
+            7
+          ],
+          [
+            27,
+            18,
+            68,
+            1156,
+            15,
+            60,
+            7,
+            11
+          ],
+          [
+            1,
+            1,
+            6,
+            6,
+            186,
+            10,
+            0,
+            2
+          ],
+          [
+            9,
+            5,
+            39,
+            45,
+            2,
+            596,
+            3,
+            7
+          ],
+          [
+            2,
+            0,
+            4,
+            13,
+            0,
+            3,
+            224,
+            1
+          ],
+          [
+            1,
+            4,
+            9,
+            18,
+            0,
+            4,
+            0,
+            242
+          ]
+        ]
+      }
+    },
+    "v1": {
+      "rows": 4784,
+      "accuracy": 0.8798076923076923,
+      "macro_f1": 0.8782464539971966,
+      "per_class": {
+        "Access": {
+          "precision": 0.9097127222982216,
+          "recall": 0.9339887640449438,
+          "f1": 0.9216909216909217,
+          "support": 712
+        },
+        "Administrative rights": {
+          "precision": 0.8354430379746836,
+          "recall": 0.75,
+          "f1": 0.7904191616766467,
+          "support": 176
+        },
+        "HR Support": {
+          "precision": 0.8854545454545455,
+          "recall": 0.8927589367552704,
+          "f1": 0.8890917389319946,
+          "support": 1091
+        },
+        "Hardware": {
+          "precision": 0.8824427480916031,
+          "recall": 0.8487518355359766,
+          "f1": 0.8652694610778443,
+          "support": 1362
+        },
+        "Internal Project": {
+          "precision": 0.8727272727272727,
+          "recall": 0.9056603773584906,
+          "f1": 0.8888888888888888,
+          "support": 212
+        },
+        "Miscellaneous": {
+          "precision": 0.8250336473755047,
+          "recall": 0.8682719546742209,
+          "f1": 0.8461007591442374,
+          "support": 706
+        },
+        "Purchase": {
+          "precision": 0.928,
+          "recall": 0.9392712550607287,
+          "f1": 0.9336016096579477,
+          "support": 247
+        },
+        "Storage": {
+          "precision": 0.9007352941176471,
+          "recall": 0.8812949640287769,
+          "f1": 0.8909090909090909,
+          "support": 278
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "Access",
+          "Administrative rights",
+          "HR Support",
+          "Hardware",
+          "Internal Project",
+          "Miscellaneous",
+          "Purchase",
+          "Storage"
+        ],
+        "counts": [
+          [
+            665,
+            4,
+            10,
+            19,
+            5,
+            6,
+            0,
+            3
+          ],
+          [
+            4,
+            132,
+            4,
+            26,
+            2,
+            5,
+            2,
+            1
+          ],
+          [
+            20,
+            0,
+            974,
+            49,
+            10,
+            26,
+            6,
+            6
+          ],
+          [
+            28,
+            14,
+            66,
+            1156,
+            9,
+            71,
+            8,
+            10
+          ],
+          [
+            2,
+            1,
+            4,
+            4,
+            192,
+            9,
+            0,
+            0
+          ],
+          [
+            9,
+            3,
+            34,
+            38,
+            1,
+            613,
+            2,
+            6
+          ],
+          [
+            0,
+            1,
+            2,
+            8,
+            1,
+            2,
+            232,
+            1
+          ],
+          [
+            3,
+            3,
+            6,
+            10,
+            0,
+            11,
+            0,
+            245
+          ]
+        ]
+      }
+    },
+    "v2": {
+      "rows": 4784,
+      "accuracy": 0.8141722408026756,
+      "macro_f1": 0.8024379250783271,
+      "per_class": {
+        "Access": {
+          "precision": 0.8071428571428572,
+          "recall": 0.952247191011236,
+          "f1": 0.8737113402061856,
+          "support": 712
+        },
+        "Administrative rights": {
+          "precision": 0.5592592592592592,
+          "recall": 0.8579545454545454,
+          "f1": 0.6771300448430493,
+          "support": 176
+        },
+        "HR Support": {
+          "precision": 0.8869895536562203,
+          "recall": 0.8560953253895509,
+          "f1": 0.871268656716418,
+          "support": 1091
+        },
+        "Hardware": {
+          "precision": 0.9541809851088202,
+          "recall": 0.6116005873715125,
+          "f1": 0.745413870246085,
+          "support": 1362
+        },
+        "Internal Project": {
+          "precision": 0.643312101910828,
+          "recall": 0.9528301886792453,
+          "f1": 0.7680608365019012,
+          "support": 212
+        },
+        "Miscellaneous": {
+          "precision": 0.7941567065073041,
+          "recall": 0.8470254957507082,
+          "f1": 0.8197395476353667,
+          "support": 706
+        },
+        "Purchase": {
+          "precision": 0.8096885813148789,
+          "recall": 0.9473684210526315,
+          "f1": 0.8731343283582089,
+          "support": 247
+        },
+        "Storage": {
+          "precision": 0.6760204081632653,
+          "recall": 0.9532374100719424,
+          "f1": 0.7910447761194029,
+          "support": 278
+        }
+      },
+      "confusion_matrix": {
+        "labels": [
+          "Access",
+          "Administrative rights",
+          "HR Support",
+          "Hardware",
+          "Internal Project",
+          "Miscellaneous",
+          "Purchase",
+          "Storage"
+        ],
+        "counts": [
+          [
+            678,
+            3,
+            8,
+            3,
+            9,
+            5,
+            1,
+            5
+          ],
+          [
+            7,
+            151,
+            2,
+            1,
+            6,
+            2,
+            2,
+            5
+          ],
+          [
+            37,
+            4,
+            934,
+            22,
+            37,
+            28,
+            8,
+            21
+          ],
+          [
+            90,
+            99,
+            75,
+            833,
+            39,
+            111,
+            36,
+            79
+          ],
+          [
+            2,
+            1,
+            3,
+            1,
+            202,
+            2,
+            1,
+            0
+          ],
+          [
+            22,
+            8,
+            29,
+            10,
+            17,
+            598,
+            7,
+            15
+          ],
+          [
+            1,
+            1,
+            2,
+            3,
+            2,
+            2,
+            234,
+            2
+          ],
+          [
+            3,
+            3,
+            0,
+            0,
+            2,
+            5,
+            0,
+            265
+          ]
+        ]
+      }
+    }
+  },
+  "bilingual_pilot_holdout": {
+    "scenario_count": 16,
+    "paired_text_count": 32,
+    "metrics_by_language": {
+      "en": {
+        "baseline": {
+          "rows": 16,
+          "accuracy": 0.3125,
+          "macro_f1": 0.2579365079365079,
+          "per_class": {
+            "Access": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 0.2857142857142857,
+              "recall": 1.0,
+              "f1": 0.4444444444444444,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.2,
+              "recall": 0.5,
+              "f1": 0.2857142857142857,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                1
+              ]
+            ]
+          }
+        },
+        "v1": {
+          "rows": 16,
+          "accuracy": 0.25,
+          "macro_f1": 0.2121212121212121,
+          "per_class": {
+            "Access": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 0.2222222222222222,
+              "recall": 1.0,
+              "f1": 0.36363636363636365,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                0,
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                1
+              ]
+            ]
+          }
+        },
+        "v2": {
+          "rows": 16,
+          "accuracy": 0.625,
+          "macro_f1": 0.575,
+          "per_class": {
+            "Access": {
+              "precision": 0.25,
+              "recall": 0.5,
+              "f1": 0.3333333333333333,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 0.6666666666666666,
+              "recall": 1.0,
+              "f1": 0.8,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 0.6666666666666666,
+              "recall": 1.0,
+              "f1": 0.8,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                1,
+                1,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2
+              ]
+            ]
+          }
+        }
+      },
+      "ro": {
+        "baseline": {
+          "rows": 16,
+          "accuracy": 0.125,
+          "macro_f1": 0.03333333333333333,
+          "per_class": {
+            "Access": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 0.15384615384615385,
+              "recall": 1.0,
+              "f1": 0.26666666666666666,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                1,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ]
+            ]
+          }
+        },
+        "v1": {
+          "rows": 16,
+          "accuracy": 0.1875,
+          "macro_f1": 0.09821428571428571,
+          "per_class": {
+            "Access": {
+              "precision": 0.5,
+              "recall": 0.5,
+              "f1": 0.5,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 0.16666666666666666,
+              "recall": 1.0,
+              "f1": 0.2857142857142857,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                1,
+                0,
+                1,
+                0,
+                0
+              ]
+            ]
+          }
+        },
+        "v2": {
+          "rows": 16,
+          "accuracy": 0.5625,
+          "macro_f1": 0.5291666666666666,
+          "per_class": {
+            "Access": {
+              "precision": 0.3333333333333333,
+              "recall": 0.5,
+              "f1": 0.4,
+              "support": 2
+            },
+            "Administrative rights": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "HR Support": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 2
+            },
+            "Hardware": {
+              "precision": 1.0,
+              "recall": 0.5,
+              "f1": 0.6666666666666666,
+              "support": 2
+            },
+            "Internal Project": {
+              "precision": 0.5,
+              "recall": 1.0,
+              "f1": 0.6666666666666666,
+              "support": 2
+            },
+            "Miscellaneous": {
+              "precision": 0.0,
+              "recall": 0.0,
+              "f1": 0.0,
+              "support": 2
+            },
+            "Purchase": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 2
+            },
+            "Storage": {
+              "precision": 0.5,
+              "recall": 0.5,
+              "f1": 0.5,
+              "support": 2
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "Access",
+              "Administrative rights",
+              "HR Support",
+              "Hardware",
+              "Internal Project",
+              "Miscellaneous",
+              "Purchase",
+              "Storage"
+            ],
+            "counts": [
+              [
+                1,
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                1,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0
+              ],
+              [
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                0
+              ],
+              [
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                1
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

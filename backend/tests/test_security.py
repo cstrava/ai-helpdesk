@@ -305,7 +305,7 @@ def test_migrations_adopt_existing_schema_and_repeat(client, test_db):
     with test_db() as db:
         assert (
             db.execute("SELECT count(*) AS n FROM schema_migrations").fetchone()["n"]
-            == 6
+            == 7
         )
         assert db.execute(
             "SELECT id FROM tickets WHERE id=%s", (original["id"],)
@@ -495,6 +495,10 @@ def test_draft_receives_only_user_facts(client, monkeypatch):
 def test_legacy_adoption_rejects_partial_schema(test_db, damage):
     with test_db() as db:
         db.execute("DELETE FROM schema_migrations WHERE version < '004'")
+        if damage == "ALTER TABLE tickets ALTER COLUMN text TYPE varchar(1000)":
+            db.execute(
+                "DROP TRIGGER IF EXISTS tickets_invalidate_category_review ON tickets"
+            )
         db.execute(damage)
     with pytest.raises(RuntimeError, match="Incompatible legacy schema"):
         migrate()
