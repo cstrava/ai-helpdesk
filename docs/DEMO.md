@@ -29,3 +29,23 @@ Pornește aplicația conform README. Creează două conturi user din interfață
 ## Interfață
 
 Verifică desktop și telefon, Tab/Shift+Tab în dialoguri, Escape, focus vizibil, liste goale, încărcare, erori și logout. Testele automate de browser sunt separate de această verificare cu modele reale.
+
+## Recuperare și verificare — etapa 1 (5–10 minute)
+
+Acest scenariu demonstrează funcțiile existente și stabilitatea lor. Firul public de suport, preluarea și redeschiderea sunt încă planificate. Nu sunt prezentate ca implementate. Pentru date sintetice, folosește un mediu separat; nu transforma baza personală în fixture.
+
+1. **Minutele 0–2:** autentifică-te, scrie un mesaj fără să-l trimiți, apoi refresh. Mesajul trebuie recuperat în aceeași filă. Trimite-l și verifică răspunsul.
+2. **Minutele 2–4:** pregătește ciorna, modifică titlul și descrierea, apoi refresh. Modificările trebuie recuperate fără creare de tichet.
+3. **Minutele 4–5:** confirmă și refresh. Verifică același ID și conversația închisă. Nu trebuie să reapară ciorna.
+4. **Minutele 5–7:** ca support, caută ID-ul, modifică categoria/statusul și inspectează auditul. Ca al doilea user verifică izolarea. Creează conturile explicit conform README; pornirea nu le creează automat.
+5. **Minutele 7–9:** repetă o conversație scurtă în engleză, verificând manual fidelitatea ciornei. Erorile Qwen sunt posibile și trebuie corectate înainte de confirmare.
+6. **Minutul 9–10:** logout, login și verifică absența conținutului nesalvat. Istoricul salvat în DB rămâne accesibil.
+
+Pierderea răspunsului după salvare este simulată reproductibil în Playwright: cererea ajunge la backend, acesta creează tichetul, iar browserul primește 502. Interfața trebuie să recupereze tichetul prin GET fără al doilea POST. Rularea este pe DB separată, cu ML/LLM simulate:
+
+```bash
+cd frontend
+E2E_PYTHON=../.venv/bin/python POSTGRES_PORT=55434 npm run test:e2e
+```
+
+Nu simula erori prin oprirea bazei personale. Testele automate cu modele simulate nu înlocuiesc verificarea manuală RO/EN cu modelele reale.
