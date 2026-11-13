@@ -170,7 +170,13 @@ def test_account_isolation_and_support_audit(client, test_db):
         assert len(second.get("/tickets").json()) == 1
         changed = second.patch(
             f"/tickets/{original['id']}",
-            json={"status": "resolved", "final_category": "Hardware"},
+            json={
+                "status": "resolved",
+                "final_category": "Hardware",
+                "expected_version": 0,
+                "resolution_message": "Account access restored.",
+                "request_id": str(uuid4()),
+            },
         )
         assert changed.status_code == 200
         assert changed.json()["predicted_category"] == "Access"
@@ -272,7 +278,7 @@ def test_migrations_adopt_existing_schema_and_repeat(client, test_db):
     with test_db() as db:
         assert (
             db.execute("SELECT count(*) AS n FROM schema_migrations").fetchone()["n"]
-            == 4
+            == 5
         )
         assert db.execute(
             "SELECT id FROM tickets WHERE id=%s", (original["id"],)

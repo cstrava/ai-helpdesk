@@ -158,6 +158,7 @@ def test_manual_correction_preserves_prediction(client, test_db):
         json={
             "final_category": "Hardware",
             "status": "in_progress",
+            "expected_version": 0,
         },
     )
 
