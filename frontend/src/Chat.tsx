@@ -16,8 +16,9 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import { ApiError, errorText, request, statusLabels } from "./api";
+import { ApiError, errorText, request, statusLabels, isTicket } from "./api";
 import type { Draft, Message, Ticket } from "./api";
+import { readUnsaved, saveUnsaved } from "./unsaved";
 type Conversation = { id: string; title: string; ticket_id: string | null };
 type Props = {
   accountId: string;
@@ -64,7 +65,10 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
     if (saved) void restore(saved).finally(() => setRestoring(false));
-    else setRestoring(false);
+    else {
+      setText(readUnsaved(accountId, null).text);
+      setRestoring(false);
+    }
     // Restore only when the authenticated account changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -78,12 +82,31 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
         request<{ ticket: Ticket | null }>(`/conversations/${conversationId}`),
         request<Message[]>(`/conversations/${conversationId}/messages`),
       ]);
+      if (
+        detail.ticket &&
+        (!isTicket(detail.ticket) ||
+          detail.ticket.conversation_id !== conversationId)
+      )
+        throw new ApiError("Serverul a trimis un tichet nevalid.", 502);
       setId(conversationId);
       setMessages(rows);
       setTicket(detail.ticket);
-      setDraft(null);
-      setText("");
-      setConfirmationBlocked(false);
+      const saved = readUnsaved(accountId, conversationId);
+      const validDraft =
+        saved.draft?.last_message_id === rows.at(-1)?.id ? saved.draft : null;
+      setDraft(detail.ticket ? null : validDraft);
+      setText(detail.ticket ? "" : saved.text);
+      setConfirmationBlocked(!detail.ticket && saved.uncertain);
+      if (saved.draft && !validDraft && !detail.ticket)
+        setError(
+          "Conversația s-a schimbat. Generează din nou ciorna; modificările vechi nu pot fi confirmate.",
+        );
+      if (detail.ticket)
+        saveUnsaved(accountId, conversationId, {
+          text: "",
+          draft: null,
+          uncertain: false,
+        });
       localStorage.setItem(storageKey, conversationId);
     } catch (cause) {
       setError(errorText(cause));
@@ -92,6 +115,14 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
       setBusy(null);
     }
   }
+  useEffect(() => {
+    if (!restoring && !ticket)
+      saveUnsaved(accountId, id, {
+        text,
+        draft,
+        uncertain: confirmationBlocked,
+      });
+  }, [accountId, id, text, draft, confirmationBlocked, restoring, ticket]);
   const lock = useRef(false);
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -110,6 +141,8 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
     setPending("");
   }
   function reset() {
+    saveUnsaved(accountId, id, { text: "", draft: null, uncertain: false });
+    saveUnsaved(accountId, null, { text: "", draft: null, uncertain: false });
     localStorage.removeItem(storageKey);
     setId(null);
     setMessages([]);
@@ -134,6 +167,11 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
           {},
         );
         conversation = result.id;
+        saveUnsaved(accountId, null, {
+          text: "",
+          draft: null,
+          uncertain: false,
+        });
         setId(conversation);
         localStorage.setItem(storageKey, conversation);
       }
@@ -167,6 +205,51 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
       end();
     }
   }
+  function acceptTicket(result: unknown) {
+    if (!isTicket(result) || result.conversation_id !== id)
+      throw new ApiError("Serverul a trimis un tichet nevalid.", 502);
+    setTicket(result);
+    setDraft(null);
+    setText("");
+    setConfirmationBlocked(false);
+    setError("");
+    saveUnsaved(accountId, id, { text: "", draft: null, uncertain: false });
+    onCreated();
+    setHistoryVersion((value) => value + 1);
+  }
+  async function recoverConfirmation() {
+    const detail = await request<{ ticket: Ticket | null }>(
+      `/conversations/${id}`,
+    );
+    if (!detail || !("ticket" in detail))
+      throw new ApiError("Răspuns de recuperare nevalid.", 502);
+    if (detail.ticket) {
+      acceptTicket(detail.ticket);
+      return true;
+    }
+    return false;
+  }
+  async function checkConfirmation() {
+    if (!id || !begin("confirm")) return;
+    try {
+      if (!(await recoverConfirmation())) {
+        const rows = await request<Message[]>(`/conversations/${id}/messages`);
+        if (draft?.last_message_id !== rows.at(-1)?.id) {
+          setMessages(rows);
+          setDraft(null);
+          setError("Conversația s-a schimbat. Generează din nou ciorna.");
+        } else
+          setError(
+            "Nu există încă un tichet confirmat de server. Poți reîncerca; serverul previne duplicatele.",
+          );
+        setConfirmationBlocked(false);
+      }
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      end();
+    }
+  }
   async function confirm(event: FormEvent) {
     event.preventDefault();
     if (!id || !draft || ticket || confirmationBlocked || !begin("confirm"))
@@ -182,17 +265,25 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
           confirmed: true,
         },
       );
-      setTicket(result);
-      setDraft(null);
-      onCreated();
-      setHistoryVersion((value) => value + 1);
+      acceptTicket(result);
     } catch (cause) {
       setError(errorText(cause));
       if (
         cause instanceof ApiError &&
-        (cause.status === 409 || cause.status === 0)
-      )
+        (cause.status === 0 ||
+          cause.status === 408 ||
+          cause.status === 409 ||
+          cause.status >= 500)
+      ) {
         setConfirmationBlocked(true);
+        try {
+          await recoverConfirmation();
+        } catch {
+          setError(
+            "Rezultatul confirmării este incert. Verifică din nou conexiunea și rezultatul înainte de retry.",
+          );
+        }
+      }
     } finally {
       end();
     }
@@ -214,7 +305,7 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
               if (
                 (text || draft) &&
                 !window.confirm(
-                  "Ciorna și mesajul nesent se vor pierde. Continui?",
+                  "Schimbi conversația? Conținutul nesalvat rămâne în această filă.",
                 )
               )
                 return;
@@ -371,9 +462,16 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
                 {error}
                 {confirmationBlocked && (
                   <p>
-                    Verifică lista de tichete înainte să încerci din nou.
-                    Conversația poate avea deja un tichet sau ciorna trebuie
-                    regenerată.
+                    Confirmarea nu a putut fi stabilită. Verifică rezultatul
+                    înainte de retry.
+                    <button
+                      type="button"
+                      className="button secondary"
+                      disabled={!!busy}
+                      onClick={checkConfirmation}
+                    >
+                      Verifică rezultatul
+                    </button>
                   </p>
                 )}
               </div>

@@ -67,6 +67,7 @@ function mockApi(failMessage = false) {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  sessionStorage.clear();
   vi.unstubAllGlobals();
 });
 describe("Helpdesk frontend", () => {
@@ -103,6 +104,7 @@ describe("Helpdesk frontend", () => {
       confirmed: true,
     });
     expect(screen.queryByLabelText("Mesajul tău")).toBeNull();
+    expect(sessionStorage.getItem("helpdesk-unsaved:account-1:new")).toBeNull();
   });
   it("preserves unsent text when the model fails", async () => {
     mockApi(true);
@@ -180,9 +182,14 @@ describe("Helpdesk frontend", () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByLabelText("Mesajul tău");
+    sessionStorage.setItem(
+      "helpdesk-unsaved:account-1:new",
+      JSON.stringify({ text: "private", draft: null, uncertain: false }),
+    );
     await user.click(screen.getAllByRole("button", { name: "Deconectare" })[0]);
     await screen.findByLabelText("Email");
     expect(screen.queryByLabelText("Mesajul tău")).toBeNull();
+    expect(sessionStorage.getItem("helpdesk-unsaved:account-1:new")).toBeNull();
   });
   it("sends category and global search filters to the server", async () => {
     const fetchMock = mockApi();
