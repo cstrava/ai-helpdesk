@@ -39,6 +39,33 @@ def ticket(client):
     return conversation, draft, response.json()
 
 
+def test_ticket_impact_is_user_declared_and_optional(client):
+    conversation = start_conversation(client)
+    add_message(client, conversation)
+    draft = get_draft(client, conversation)
+    payload = confirmation_body(draft)
+    payload["impact"] = "team"
+    created = client.post(f"/conversations/{conversation}/tickets", json=payload)
+    assert created.status_code == 201
+    assert created.json()["impact"] == "team"
+    assert (
+        client.patch(
+            f"/tickets/{created.json()['id']}",
+            json={"impact": "organization"},
+        ).status_code
+        == 422
+    )
+    other_conversation = start_conversation(client)
+    add_message(client, other_conversation)
+    other_draft = get_draft(client, other_conversation)
+    without_impact = client.post(
+        f"/conversations/{other_conversation}/tickets",
+        json=confirmation_body(other_draft),
+    )
+    assert without_impact.status_code == 201
+    assert without_impact.json()["impact"] is None
+
+
 def test_password_hash_is_salted():
     first = password_hash("a-long-test-password")
     assert first != password_hash("a-long-test-password")
@@ -278,7 +305,7 @@ def test_migrations_adopt_existing_schema_and_repeat(client, test_db):
     with test_db() as db:
         assert (
             db.execute("SELECT count(*) AS n FROM schema_migrations").fetchone()["n"]
-            == 5
+            == 6
         )
         assert db.execute(
             "SELECT id FROM tickets WHERE id=%s", (original["id"],)

@@ -28,6 +28,8 @@ def test_public_thread_idempotency_and_validation(client, support):
     payload = body()
     first = client.post(path, json=payload)
     assert first.status_code == 201
+    assert support.get("/notifications/unread-count").json()["count"] == 1
+    assert support.get("/notifications").json()[0]["kind"] == "reply"
     assert client.post(path, json=payload).json()["id"] == first.json()["id"]
     assert UUID(first.json()["id"])
     assert (
@@ -184,13 +186,14 @@ def test_resolution_and_reopening_preserve_first_resolution(client, support):
         ).status_code
         == 422
     )
+    resolution_id = str(uuid4())
     resolved = support.patch(
         path,
         json={
             "status": "resolved",
             "expected_version": 0,
             "resolution_message": "Access restored",
-            "request_id": str(uuid4()),
+            "request_id": resolution_id,
         },
     )
     assert resolved.status_code == 200
@@ -215,6 +218,19 @@ def test_resolution_and_reopening_preserve_first_resolution(client, support):
     assert reopened.status_code == 200
     assert reopened.json()["status"] == "open"
     assert reopened.json()["first_resolved_at"] == first
+    assert (
+        support.patch(
+            path,
+            json={
+                "status": "resolved",
+                "expected_version": 2,
+                "resolution_message": "Access restored",
+                "request_id": resolution_id,
+            },
+        ).status_code
+        == 409
+    )
+
     assert client.post(path + "/reopen", json=payload).status_code == 200
     assert (
         client.post(
@@ -408,3 +424,75 @@ def test_public_pagination_does_not_include_internal_notes(client, support):
         second
     ]
     assert client.get(path, params={"after_id": second["id"]}).json() == []
+
+
+def test_support_workspace_filters_priority_dashboard_and_notifications(client, support):
+    _, _, created = ticket(client)
+    ticket_id = created["id"]
+    assert (
+        client.patch(
+            f"/tickets/{ticket_id}",
+            json={"priority": "urgent", "expected_version": 0},
+        ).status_code
+        == 403
+    )
+    assert client.get("/support/dashboard").status_code == 403
+    assert support.get("/support/dashboard?days=30").status_code == 200
+    assert support.get("/tickets", params={"assigned_to_me": "true"}).json() == []
+    assert len(support.get("/tickets", params={"unassigned": "true"}).json()) == 1
+    assert client.get("/tickets", params={"unassigned": "true"}).status_code == 403
+    agent_id = support.get("/auth/me").json()["id"]
+    claimed = support.post(
+        f"/tickets/{ticket_id}/claim", json={"expected_version": 0}
+    )
+    assert claimed.status_code == 200
+    assert (
+        len(
+            support.get(
+                "/tickets", params={"assigned_to_me": "true", "priority": "normal"}
+            ).json()
+        )
+        == 1
+    )
+    assert client.get("/notifications/unread-count").json()["count"] == 1
+    assert support.get("/notifications").json() == []
+
+    path = f"/tickets/{ticket_id}/messages"
+    assert (
+        support.post(path, json=body("Secret note", visibility="internal")).status_code
+        == 201
+    )
+    assert client.get("/notifications/unread-count").json()["count"] == 1
+    answer = support.post(path, json=body("Public support response"))
+    assert answer.status_code == 201
+    notices = client.get("/notifications").json()
+    assert [notice["kind"] for notice in notices] == ["reply", "assignment"]
+    assert "Secret note" not in str(notices)
+    mark = client.patch(f"/notifications/{notices[0]['id']}/read", json={})
+    assert mark.status_code == 200 and mark.json()["read_at"] is not None
+    assert (
+        support.patch(
+            f"/tickets/{ticket_id}",
+            json={"priority": "urgent", "expected_version": 1},
+        ).status_code
+        == 200
+    )
+    assert (
+        support.get(
+            "/tickets", params={"priority": "urgent", "assigned_to_me": "true"}
+        ).json()[0]["priority"]
+        == "urgent"
+    )
+    events = client.get(f"/tickets/{ticket_id}/events").json()
+    assert any(event["field"] == "priority" and event["new_value"] == "urgent" for event in events)
+    dashboard = support.get("/support/dashboard?days=30").json()
+    assert dashboard["days"] == 30
+    assert dashboard["avg_first_reply_seconds"] is not None
+    assert dashboard["without_first_resolution_event"] == 1
+    status_change = support.patch(
+        f"/tickets/{ticket_id}",
+        json={"status": "in_progress", "expected_version": 2},
+    )
+    assert status_change.status_code == 200
+    assert any(item["kind"] == "status" for item in client.get("/notifications").json())
+    assert agent_id == claimed.json()["assignee_id"]
