@@ -21,6 +21,8 @@ RUN useradd --create-home --uid 10001 appuser
 
 COPY --chown=appuser:appuser backend/app /app/backend/app
 
+COPY --chown=appuser:appuser backend/migrations /app/backend/migrations
+
 USER appuser
 
 EXPOSE 8000

@@ -27,7 +27,7 @@ export default function Dialog({
           'button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]',
         ) ?? [],
       );
-    focusable()[0]?.focus();
+    focusable()[0]?.focus({ preventScroll: true });
     function key(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -62,7 +62,7 @@ export default function Dialog({
     return () => {
       document.removeEventListener("keydown", key);
       document.body.style.overflow = overflow;
-      previous?.focus();
+      previous?.focus({ preventScroll: true });
     };
   }, []);
   return (

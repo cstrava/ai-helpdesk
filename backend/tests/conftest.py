@@ -1,7 +1,6 @@
 import json
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 from uuid import uuid4
 
 import psycopg
@@ -12,14 +11,12 @@ from psycopg.rows import dict_row
 
 from backend.app import main as api
 
-MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
-
 
 @pytest.fixture
 def test_db(monkeypatch):
     settings = {
         "host": os.getenv("POSTGRES_HOST", "127.0.0.1"),
-        "port": int(os.getenv("POSTGRES_PORT", "5433")),
+        "port": int(os.getenv("POSTGRES_PORT", "5434")),
         "dbname": "ai_helpdesk_test",
         "user": os.getenv("POSTGRES_USER", "helpdesk"),
         "password": os.environ["POSTGRES_PASSWORD"],
@@ -28,24 +25,18 @@ def test_db(monkeypatch):
 
     schema = f"test_{uuid4().hex}"
 
-    with psycopg.connect(**settings, autocommit=True) as connection:
-        connection.execute(
-            sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema))
-        )
-
     try:
         with psycopg.connect(**settings, autocommit=True) as connection:
             connection.execute(
-                sql.SQL("SET search_path TO {}").format(
-                    sql.Identifier(schema)
-                )
+                sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema))
             )
+    except psycopg.OperationalError:
+        pytest.fail(
+            "Baza ai_helpdesk_test nu este disponibilă. Verifică variabilele POSTGRES_* și portul de test.",
+            pytrace=False,
+        )
 
-            migrations = sorted(MIGRATIONS.glob("*.sql"))
-            assert migrations, "Nu au fost găsite migrările."
-
-            for migration in migrations:
-                connection.execute(migration.read_text(encoding="utf-8"))
+    try:
 
         def connect_test_db():
             return psycopg.connect(
@@ -55,19 +46,20 @@ def test_db(monkeypatch):
             )
 
         monkeypatch.setattr(api, "connect_db", connect_test_db)
+        from backend.app.manage import migrate
+
+        migrate()
         yield connect_test_db
 
     finally:
         with psycopg.connect(**settings, autocommit=True) as connection:
             connection.execute(
-                sql.SQL("DROP SCHEMA {} CASCADE").format(
-                    sql.Identifier(schema)
-                )
+                sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema))
             )
 
 
 @pytest.fixture
-def client(test_db, monkeypatch):
+def anonymous_client(test_db, monkeypatch):
     @asynccontextmanager
     async def test_lifespan(app):
         yield
@@ -80,10 +72,12 @@ def client(test_db, monkeypatch):
 
     def fake_chat(messages, system_prompt=None, response_format=None):
         if response_format is not None:
-            return json.dumps({
-                "title": "Cont SAP blocat",
-                "description": "Utilizatorul nu se poate conecta la SAP.",
-            })
+            return json.dumps(
+                {
+                    "title": "Cont SAP blocat",
+                    "description": "Utilizatorul nu se poate conecta la SAP.",
+                }
+            )
 
         return "Ce mesaj de eroare apare?"
 
@@ -97,3 +91,19 @@ def client(test_db, monkeypatch):
 
     with TestClient(api.app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def client(anonymous_client):
+    response = anonymous_client.post(
+        "/auth/register",
+        json={"email": "owner@example.test", "password": "test-password-only"},
+    )
+    assert response.status_code == 201
+    response = anonymous_client.post(
+        "/auth/login",
+        json={"email": "owner@example.test", "password": "test-password-only"},
+    )
+    assert response.status_code == 200
+    anonymous_client.headers["X-CSRF-Token"] = response.json()["csrf_token"]
+    yield anonymous_client

@@ -1,3 +1,7 @@
+let csrfToken = "";
+export const setCsrfToken = (value: string) => {
+  csrfToken = value;
+};
 export const categories = [
   "Access",
   "Administrative rights",
@@ -54,7 +58,10 @@ export async function request<T>(
   try {
     response = await fetch(`/api${path}`, {
       method,
-      headers: body === undefined ? {} : { "Content-Type": "application/json" },
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -65,6 +72,8 @@ export async function request<T>(
   }
   const data = await response.json().catch(() => null);
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith("/auth/"))
+      window.dispatchEvent(new Event("session-expired"));
     const detail = data?.detail;
     const message =
       typeof detail === "string"

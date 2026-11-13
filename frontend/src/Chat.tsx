@@ -18,8 +18,18 @@ import {
 } from "lucide-react";
 import { ApiError, errorText, request, statusLabels } from "./api";
 import type { Draft, Message, Ticket } from "./api";
-type Props = { onCreated: () => void; onViewTickets: () => void };
-export default function Chat({ onCreated, onViewTickets }: Props) {
+type Conversation = { id: string; title: string; ticket_id: string | null };
+type Props = {
+  accountId: string;
+  onCreated: () => void;
+  onViewTickets: (ticketId?: string) => void;
+};
+export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
+  const [history, setHistory] = useState<Conversation[]>([]);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyError, setHistoryError] = useState("");
+  const [restoring, setRestoring] = useState(true);
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [id, setId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
@@ -32,6 +42,56 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [resetDialog, setResetDialog] = useState(false);
   const [confirmationBlocked, setConfirmationBlocked] = useState(false);
+  const storageKey = `helpdesk-conversation-${accountId}`;
+  useEffect(() => {
+    let active = true;
+    request<Conversation[]>(
+      `/conversations?limit=21&offset=${historyPage * 20}`,
+    )
+      .then((rows) => {
+        if (active) {
+          setHistory(rows);
+          setHistoryError("");
+        }
+      })
+      .catch((cause) => {
+        if (active) setHistoryError(errorText(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, [historyPage, historyVersion]);
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) void restore(saved).finally(() => setRestoring(false));
+    else setRestoring(false);
+    // Restore only when the authenticated account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+  async function restore(conversationId: string) {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy("message");
+    setError("");
+    try {
+      const [detail, rows] = await Promise.all([
+        request<{ ticket: Ticket | null }>(`/conversations/${conversationId}`),
+        request<Message[]>(`/conversations/${conversationId}/messages`),
+      ]);
+      setId(conversationId);
+      setMessages(rows);
+      setTicket(detail.ticket);
+      setDraft(null);
+      setText("");
+      setConfirmationBlocked(false);
+      localStorage.setItem(storageKey, conversationId);
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      lock.current = false;
+      setBusy(null);
+    }
+  }
   const lock = useRef(false);
   const log = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -50,6 +110,7 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
     setPending("");
   }
   function reset() {
+    localStorage.removeItem(storageKey);
     setId(null);
     setMessages([]);
     setText("");
@@ -74,6 +135,7 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
         );
         conversation = result.id;
         setId(conversation);
+        localStorage.setItem(storageKey, conversation);
       }
       const turn = await request<{
         user_message: Message;
@@ -85,6 +147,7 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
         turn.assistant_message,
       ]);
       setText("");
+      setHistoryVersion((value) => value + 1);
     } catch (cause) {
       setError(errorText(cause));
     } finally {
@@ -122,6 +185,7 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
       setTicket(result);
       setDraft(null);
       onCreated();
+      setHistoryVersion((value) => value + 1);
     } catch (cause) {
       setError(errorText(cause));
       if (
@@ -136,6 +200,53 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
   const step = ticket ? 3 : draft ? 2 : 1;
   return (
     <div className="page">
+      <section
+        className="card history-bar"
+        aria-label="Istoricul conversațiilor"
+      >
+        <label htmlFor="conversation-history">Conversațiile mele</label>
+        <select
+          id="conversation-history"
+          value={history.some((row) => row.id === id) ? (id ?? "") : ""}
+          disabled={!!busy || restoring}
+          onChange={(e) => {
+            if (e.target.value) {
+              if (
+                (text || draft) &&
+                !window.confirm(
+                  "Ciorna și mesajul nesent se vor pierde. Continui?",
+                )
+              )
+                return;
+              void restore(e.target.value);
+            }
+          }}
+        >
+          <option value="">Alege o conversație</option>
+          {history.slice(0, 20).map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.title}
+              {row.ticket_id ? " · Tichet creat" : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          className="button secondary"
+          disabled={!historyPage || !!busy}
+          onClick={() => setHistoryPage((p) => p - 1)}
+        >
+          Mai recente
+        </button>
+        <button
+          className="button secondary"
+          disabled={history.length <= 20 || !!busy}
+          onClick={() => setHistoryPage((p) => p + 1)}
+        >
+          Mai vechi
+        </button>
+        {historyError && <p role="alert">{historyError}</p>}
+        {restoring && <p role="status">Se restaurează conversația…</p>}
+      </section>
       <header className="page-heading">
         <div>
           <p className="eyebrow">ASISTENTUL TĂU IT</p>
@@ -364,7 +475,7 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
                 <button
                   type="button"
                   className="text-button"
-                  onClick={onViewTickets}
+                  onClick={() => onViewTickets(ticket?.id)}
                 >
                   Verifică lista de tichete →
                 </button>
@@ -375,6 +486,10 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
             <div className="success-panel" role="status">
               <CheckCircle2 size={36} />
               <p className="eyebrow">TICHET CREAT</p>
+              <p>
+                Conversația este închisă pentru mesaje noi. Pentru altă
+                problemă, începe o conversație nouă.
+              </p>
               <h2>{ticket.title}</h2>
               <p className="preserve">{ticket.text}</p>
               <div className="category-line">
@@ -384,7 +499,10 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
                 </span>
               </div>
               <p className="hint mono">ID: {ticket.id}</p>
-              <button className="button primary" onClick={onViewTickets}>
+              <button
+                className="button primary"
+                onClick={() => onViewTickets(ticket?.id)}
+              >
                 Vezi tichetele
                 <ArrowRight size={16} />
               </button>
@@ -454,9 +572,8 @@ export default function Chat({ onCreated, onViewTickets }: Props) {
           </button>
           <h2 id="reset-title">Începi o conversație nouă?</h2>
           <p>
-            Mesajele trimise rămân în baza de date. Ciorna și mesajul nesent se
-            pierd. În această versiune nu poți redeschide conversația din
-            interfață.
+            Mesajele trimise rămân în istoric și poți redeschide conversația.
+            Ciorna și mesajul nesent se pierd.
           </p>
           <div className="actions">
             <button

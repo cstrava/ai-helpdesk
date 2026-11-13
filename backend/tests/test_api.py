@@ -22,9 +22,7 @@ def add_message(client, conversation_id, content="Contul SAP este blocat."):
 
 
 def get_draft(client, conversation_id):
-    response = client.post(
-        f"/conversations/{conversation_id}/ticket-draft"
-    )
+    response = client.post(f"/conversations/{conversation_id}/ticket-draft")
     assert response.status_code == 200
     return response.json()
 
@@ -42,13 +40,9 @@ def test_conversation_to_ticket(client, test_db):
     conversation_id = start_conversation(client)
     turn = add_message(client, conversation_id)
 
-    history = client.get(
-        f"/conversations/{conversation_id}/messages"
-    )
+    history = client.get(f"/conversations/{conversation_id}/messages")
     assert history.status_code == 200
-    assert [item["role"] for item in history.json()] == [
-        "user", "assistant"
-    ]
+    assert [item["role"] for item in history.json()] == ["user", "assistant"]
 
     draft = get_draft(client, conversation_id)
     assert draft["last_message_id"] == turn["assistant_message"]["id"]
@@ -93,9 +87,7 @@ def test_conversation_to_ticket(client, test_db):
     assert message.status_code == 409
     assert len(client.get("/tickets").json()) == 1
 
-    history = client.get(
-        f"/conversations/{conversation_id}/messages"
-    )
+    history = client.get(f"/conversations/{conversation_id}/messages")
     assert len(history.json()) == 2
 
 
@@ -147,13 +139,19 @@ def test_missing_confirmation_is_rejected(client):
     assert client.get("/tickets").json() == []
 
 
-def test_manual_correction_preserves_prediction(client):
+def test_manual_correction_preserves_prediction(client, test_db):
+    conversation_id = start_conversation(client)
+    add_message(client, conversation_id)
     response = client.post(
-        "/tickets",
-        json={"text": "Nu mă pot autentifica."},
+        f"/conversations/{conversation_id}/tickets",
+        json=confirmation_body(get_draft(client, conversation_id)),
     )
     assert response.status_code == 201
     ticket_id = response.json()["id"]
+    with test_db() as connection:
+        connection.execute(
+            "UPDATE users SET role='support' WHERE email='owner@example.test'"
+        )
 
     response = client.patch(
         f"/tickets/{ticket_id}",
@@ -181,48 +179,55 @@ def test_invalid_ticket_updates(client, body):
     assert response.status_code == 422
 
 
-def test_unknown_resources(client):
+def test_unknown_resources(client, test_db):
+    with test_db() as connection:
+        connection.execute(
+            "UPDATE users SET role='support' WHERE email='owner@example.test'"
+        )
     missing_id = str(uuid4())
 
-    assert client.get(
-        f"/conversations/{missing_id}/messages"
-    ).status_code == 404
+    assert client.get(f"/conversations/{missing_id}/messages").status_code == 404
 
-    assert client.post(
-        f"/conversations/{missing_id}/messages",
-        json={"content": "Nu mă pot conecta."},
-    ).status_code == 404
+    assert (
+        client.post(
+            f"/conversations/{missing_id}/messages",
+            json={"content": "Nu mă pot conecta."},
+        ).status_code
+        == 404
+    )
 
-    assert client.patch(
-        f"/tickets/{missing_id}",
-        json={"status": "resolved"},
-    ).status_code == 404
+    assert (
+        client.patch(
+            f"/tickets/{missing_id}",
+            json={"status": "resolved"},
+        ).status_code
+        == 404
+    )
 
 
 def test_empty_inputs(client):
     conversation_id = start_conversation(client)
 
-    assert client.post(
-        "/tickets", json={"text": "   "}
-    ).status_code == 422
+    assert client.post("/tickets", json={"text": "   "}).status_code == 410
 
-    assert client.post(
-        f"/conversations/{conversation_id}/messages",
-        json={"content": "   "},
-    ).status_code == 422
+    assert (
+        client.post(
+            f"/conversations/{conversation_id}/messages",
+            json={"content": "   "},
+        ).status_code
+        == 422
+    )
 
-    assert client.post(
-        f"/conversations/{conversation_id}/ticket-draft"
-    ).status_code == 422
+    assert (
+        client.post(f"/conversations/{conversation_id}/ticket-draft").status_code == 422
+    )
 
 
 def test_model_failure_does_not_save_partial_turn(client, monkeypatch):
     conversation_id = start_conversation(client)
     add_message(client, conversation_id)
 
-    before = client.get(
-        f"/conversations/{conversation_id}/messages"
-    ).json()
+    before = client.get(f"/conversations/{conversation_id}/messages").json()
 
     def unavailable_model(*args, **kwargs):
         raise HTTPException(status_code=502, detail="Model unavailable")
@@ -236,8 +241,6 @@ def test_model_failure_does_not_save_partial_turn(client, monkeypatch):
 
     assert response.status_code == 502
 
-    after = client.get(
-        f"/conversations/{conversation_id}/messages"
-    ).json()
+    after = client.get(f"/conversations/{conversation_id}/messages").json()
 
     assert after == before

@@ -26,7 +26,17 @@ function mockApi(failMessage = false) {
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       let data: unknown;
-      if (path === "/api/conversations") data = { id: "conversation-1" };
+      if (path === "/api/auth/me")
+        data = {
+          id: "account-1",
+          email: "support@example.test",
+          role: "support",
+          csrf_token: "csrf-test",
+        };
+      else if (path === "/api/auth/logout") data = {};
+      else if (path.startsWith("/api/conversations?")) data = [];
+      else if (path.endsWith("/events")) data = [];
+      else if (path === "/api/conversations") data = { id: "conversation-1" };
       else if (path.endsWith("/messages")) {
         if (failMessage)
           return new Response(
@@ -56,6 +66,7 @@ function mockApi(failMessage = false) {
 }
 afterEach(() => {
   cleanup();
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 describe("Helpdesk frontend", () => {
@@ -63,6 +74,7 @@ describe("Helpdesk frontend", () => {
     const fetchMock = mockApi(),
       user = userEvent.setup();
     render(<App />);
+    await screen.findByLabelText("Mesajul tău");
     await user.type(screen.getByLabelText("Mesajul tău"), "Nu merge pontajul");
     await user.click(screen.getByRole("button", { name: "Trimite" }));
     await screen.findByText("Ce eroare apare?");
@@ -96,6 +108,7 @@ describe("Helpdesk frontend", () => {
     mockApi(true);
     const user = userEvent.setup();
     render(<App />);
+    await screen.findByLabelText("Mesajul tău");
     await user.type(screen.getByLabelText("Mesajul tău"), "Nu merge pontajul");
     await user.click(screen.getByRole("button", { name: "Trimite" }));
     await screen.findByRole("alert");
@@ -110,6 +123,7 @@ describe("Helpdesk frontend", () => {
     const fetchMock = mockApi(),
       user = userEvent.setup();
     render(<App />);
+    await screen.findByLabelText("Mesajul tău");
     await user.click(screen.getByRole("button", { name: "Tichete" }));
     await user.click(
       await screen.findByRole("button", { name: "Acces pontaj" }),
@@ -135,6 +149,7 @@ describe("Helpdesk frontend", () => {
     const fetchMock = mockApi(),
       user = userEvent.setup();
     render(<App />);
+    await screen.findByLabelText("Mesajul tău");
     await user.click(screen.getByRole("button", { name: "Tichete" }));
     await user.selectOptions(
       screen.getByLabelText("Filtrează după status"),
@@ -152,11 +167,42 @@ describe("Helpdesk frontend", () => {
     mockApi();
     const user = userEvent.setup();
     render(<App />);
+    await screen.findByLabelText("Mesajul tău");
     await user.type(screen.getByLabelText("Mesajul tău"), "Problema mea");
     await user.click(screen.getByRole("button", { name: "Conversație nouă" }));
     await user.click(screen.getByRole("button", { name: "Rămân aici" }));
     expect(
       (screen.getByLabelText("Mesajul tău") as HTMLTextAreaElement).value,
     ).toBe("Problema mea");
+  });
+  it("logs out and shows the authentication screen", async () => {
+    mockApi();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Mesajul tău");
+    await user.click(screen.getAllByRole("button", { name: "Deconectare" })[0]);
+    await screen.findByLabelText("Email");
+    expect(screen.queryByLabelText("Mesajul tău")).toBeNull();
+  });
+  it("sends category and global search filters to the server", async () => {
+    const fetchMock = mockApi();
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Mesajul tău");
+    await user.click(screen.getByRole("button", { name: "Tichete" }));
+    await user.selectOptions(
+      screen.getByLabelText("Filtrează după categorie"),
+      "Hardware",
+    );
+    await user.type(screen.getByLabelText("Caută în toate tichetele"), "SAP");
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) =>
+            String(url).includes("category=Hardware") &&
+            String(url).includes("search=SAP"),
+        ),
+      ).toBe(true),
+    );
   });
 });

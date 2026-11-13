@@ -16,6 +16,9 @@
 * {
   box-sizing: border-box;
 }
+html {
+  overflow-x: clip;
+}
 body {
   margin: 0;
   min-width: 360px;
@@ -780,6 +783,9 @@ footer span {
 }
 .table-scroll {
   overflow-x: auto;
+  contain: inline-size layout paint;
+  width: 100%;
+  max-width: 100%;
 }
 table {
   border-collapse: collapse;
@@ -1211,5 +1217,79 @@ tbody tr:hover {
   }
   .spin {
     animation: none;
+  }
+}
+
+.auth-page {
+  max-width: 560px;
+  margin: 8vh auto;
+}
+.auth-page input {
+  width: 100%;
+  margin-bottom: 16px;
+}
+.history-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.history-bar select {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1;
+}
+.audit-list {
+  padding-left: 20px;
+  overflow-wrap: anywhere;
+}
+.side-bottom > p {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+@media (max-width: 600px) {
+  .auth-page {
+    margin: 20px auto;
+  }
+  .history-bar select {
+    flex-basis: 100%;
+  }
+}
+
+.mobile-logout {
+  display: none;
+}
+@media (max-width: 700px) {
+  .mobile-logout {
+    display: inline-flex;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  .topbar .local-label {
+    display: none;
+  }
+}
+
+.filters > label {
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filters > label,
+  .filters > select {
+    width: 100%;
+  }
+  .filters > label:not(.search-field) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .search-field input {
+    min-width: 0;
   }
 }

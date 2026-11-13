@@ -1,46 +1,148 @@
-cat > README.md <<'EOF'
-# AI Help Desk
+# AI Helpdesk
 
-A bilingual IT support application for managing and automatically
-classifying support tickets in Romanian and English.
+Aplicație locală de portofoliu pentru suport IT în română și engleză. Utilizatorul discută cu un asistent, verifică o ciornă editabilă și confirmă explicit crearea tichetului. Suportul corectează categoria și urmărește rezolvarea.
 
-## Project status
+## Arhitectură
 
-Initial setup. Model training and application development are planned.
+- React 19, TypeScript și Vite; în Docker, Nginx servește frontendul și transmite `/api` către FastAPI.
+- FastAPI și psycopg; PostgreSQL 17 persistă utilizatorii, sesiunile, conversațiile, tichetele și istoricul schimbărilor.
+- Ollama cu `qwen3:4b-instruct` generează conversații și ciorne JSON.
+- XLM-RoBERTa v2 clasifică local titlul și descrierea în opt categorii. Predicția originală, categoria finală și versiunea modelului sunt păstrate separat.
+- Migrări SQL versionate, executate înaintea API-ului; fără cloud, RAG sau Kubernetes.
 
-## Goals
+```mermaid
+flowchart LR
+    Browser --> Nginx
+    Nginx --> FastAPI
+    FastAPI --> PostgreSQL
+    FastAPI --> Ollama
+    FastAPI --> XLMR[XLM-RoBERTa v2 local]
+```
 
-- Compare a TF-IDF + SVM baseline with a fine-tuned multilingual model.
-- Evaluate classification performance separately for Romanian and English.
-- Run model inference locally.
-- Manage ticket status and collect corrections to model predictions.
-- Record the model version used for each prediction.
-- Deliver a tested application with Docker, CI, and local Kubernetes deployment.
+## Cerințe
 
-## Planned stack
+Docker Engine și Compose v2. Configurația Ollama existentă solicită un GPU NVIDIA și NVIDIA Container Toolkit. Asigură-te că GPU-ul este disponibil pentru Docker. Clasificatorul din imaginea API folosește PyTorch CPU; GPU-ul este rezervat Ollama.
 
-- Frontend: React
-- Backend: Python, FastAPI
-- Database: PostgreSQL
-- Machine learning: scikit-learn, PyTorch, Hugging Face
-- Delivery: Docker Compose, GitHub Actions, Kubernetes
+Modelul antrenat trebuie să existe în:
 
-## Repository structure
+```text
+ml/models/xlm_roberta_helpdesk_v2/model/
+  config.json
+  model.safetensors
+  tokenizer.json
+  tokenizer_config.json
+```
 
-- backend/ — API and application logic
-- frontend/ — user interface
-- ml/ — data preparation, training, and evaluation
-- infra/ — deployment configuration
-- docs/ — architecture and project documentation
+Directorul este montat numai pentru citire. API nu descarcă și nu reantrenează modele. Dataseturile și ponderile nu sunt incluse în Git; proiectul nu poate porni inferența reală dintr-un checkout fără aceste artefacte.
 
-## Development principles
+## Instalare și pornire
 
-Dataset selection includes license and label-quality checks.
-Training, validation, and test data remain separate.
-Reported metrics must come from reproducible experiments.
-Secrets, datasets, and trained model files are excluded from Git.
-EOF
+1. Copiază `.env.example` în `.env` dacă nu ai deja configurația locală. **Nu suprascrie `.env` existent.** Completează `POSTGRES_PASSWORD` cu o parolă aleasă local. Păstrează parola bazei existente la actualizare: schimbarea variabilei nu schimbă parola dintr-un volum PostgreSQL deja inițializat.
+2. Pentru HTTP local: `APP_ORIGIN=http://127.0.0.1:5173`, `COOKIE_SECURE=false`. Pentru HTTPS setează originea exactă și `COOKIE_SECURE=true`. Folosește aceeași adresă în browser; `localhost` și `127.0.0.1` sunt origini diferite.
+3. La prima instalare, pornește Ollama și încarcă modelul:
 
-touch backend/app/.gitkeep frontend/.gitkeep
-touch ml/notebooks/.gitkeep ml/src/.gitkeep ml/reports/.gitkeep
-touch infra/k8s/.gitkeep docs/.gitkeep .github/workflows/.gitkeep
+```bash
+docker compose up -d ollama
+docker compose exec ollama ollama pull qwen3:4b-instruct
+```
+
+4. Pornește întreaga aplicație:
+
+```bash
+docker compose up -d --build
+```
+
+Interfață: <http://127.0.0.1:5173>. API/OpenAPI: <http://127.0.0.1:8000/docs>. PostgreSQL pe gazdă: `127.0.0.1:5434`; în Docker: `db:5432`. Nu este necesar fișierul suplimentar `compose.frontend.yaml`; este păstrat pentru compatibilitate.
+
+```bash
+docker compose ps
+docker compose logs --tail=100 api frontend
+docker compose exec api python -m backend.app.manage create-support --email support@example.com
+```
+
+Comanda support cere parola fără afișare și creează un cont nou; nu promovează automat un cont existent. Nu există parole implicite. Înregistrarea publică din interfață creează exclusiv rolul `user`.
+
+Pentru oprire fără ștergerea datelor:
+
+```bash
+docker compose stop
+```
+
+Serviciile au `restart: unless-stopped`. API așteaptă PostgreSQL și Ollama sănătoase și aplică migrările înainte de încărcarea clasificatorului. Healthcheckul API verifică baza de date; încărcarea clasificatorului se face înainte ca API să accepte cereri. `ollama list` verifică serviciul, nu existența modelului Qwen: încărcarea lui este pas explicit. Un healthcheck eșuat nu repornește singur un container încă activ.
+
+## Migrări și date existente
+
+```bash
+docker compose run --rm --no-deps api python -m backend.app.manage migrate
+```
+
+Runnerul păstrează `schema_migrations`, execută în ordine fișierele din `backend/migrations` și folosește o blocare tranzacțională pentru porniri concurente. Adoptă migrările originale 001–003 aplicate manual, verificând tabelele/coloanele așteptate. Schema originală trebuie să fie completă; pentru o schemă modificată manual, verifică înainte compatibilitatea. Nu edita migrări deja aplicate; adaugă un fișier nou.
+
+Migrarea 004 adaugă proprietarii fără a atribui datele vechi unui cont. Utilizatorii obișnuiți nu văd conversațiile sau tichetele fără proprietar. Suportul poate administra toate tichetele, inclusiv cele istorice; conversațiile fără proprietar nu sunt expuse în interfață. O eventuală atribuire ulterioară cere o decizie explicită și o migrare separată.
+
+Nu se șterg volume, date sau modele. Înaintea actualizării unei baze importante, păstrează un backup PostgreSQL în afara repository-ului.
+
+## Roluri și sesiuni
+
+- **user:** conversații și tichete proprii, ciornă editabilă, confirmare, urmărirea statusului și istoricului.
+- **support:** aceleași funcții personale, plus acces la toate tichetele, corectarea categoriei și schimbarea statusului `open`, `in_progress`, `resolved`.
+- Parole cu scrypt și sare aleatoare; sesiuni opace stocate în DB prin hash, cookie HttpOnly/SameSite=Lax, expirare la 8 ore și invalidare la logout. Tokenul CSRF este asociat sesiunii și transmis prin antet la operațiile de scriere; verificarea originii completează protecția. Repere: [OWASP sesiuni](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [OWASP CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
+- Login și înregistrare au limitare persistentă de 30 cereri / 10 minute per conexiune directă și operație. În configurația proxy locală, utilizatorii împart această limită; aplicația este destinată demonstrației locale.
+
+## Flux și API
+
+1. `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
+2. `POST /conversations`, `GET /conversations`, `GET /conversations/{id}`, `GET/POST /conversations/{id}/messages`.
+3. `POST /conversations/{id}/ticket-draft` generează o propunere fără salvare ca tichet.
+4. `POST /conversations/{id}/tickets` cere `title`, `description`, `last_message_id` și `confirmed: true`. Recalculează categoria pe textul editat. Respinge ciorne depășite și duplicate; blocarea rândului și constrângerea unică protejează și cererile concurente. `POST /tickets` răspunde 410 pentru a închide vechea cale fără confirmare.
+5. `GET /tickets` acceptă `search`, `status`, `category`, `limit` (1–100) și `offset`. Ordine: `created_at DESC, id DESC`; căutarea literală, fără diferență de majuscule, acoperă titlu, descriere și UUID. Paginarea offset poate reflecta inserări noi între cereri.
+6. `GET /tickets/{id}`, `PATCH /tickets/{id}` (support), `GET /tickets/{id}/events`. Auditul tranzacțional păstrează actorul, momentul și valorile vechi/noi; salvările fără schimbare nu creează evenimente.
+7. `POST /predict` este autentificat; `GET /health` este public.
+
+Conversațiile convertite sunt închise pentru mesaje noi. ID-ul conversației active este reținut local per cont, iar mesajele sunt recuperate din DB. Ciorna nesalvată și mesajul nesent nu sunt persistate la refresh. Erorile de trimitere păstrează textul în editor. La confirmare cu rezultat incert, interfața cere verificarea listei; backendul nu creează un al doilea tichet.
+
+## Dezvoltare și testare
+
+Frontend manual (oprește doar frontendul Docker dacă ocupă 5173):
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Backend local: Python 3.13, mediul virtual activ, dependențele din `backend/requirements.runtime.txt` constrânse de `backend/requirements.lock.txt`, PostgreSQL pe 5434 și Ollama accesibil. Pentru migrări și CLI este suficient setul ușor `backend/requirements.test.txt`; inferența reală necesită dependențele runtime.
+
+### Teste automate fără modele sau GPU
+
+Creează o bază separată `ai_helpdesk_test`; testele nu creează baza și nu folosesc `ai_helpdesk`. Rolul de test trebuie să poată crea scheme în ea. Fiecare test utilizează o schemă aleatoare, eliminată la final. Nu rula testele cu acces la o bază de producție.
+
+```bash
+python -m pip install -r backend/requirements.test.txt
+# Configurează POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER și POSTGRES_PASSWORD pentru baza de test.
+python -m pytest backend/tests -q --tb=short
+cd frontend
+npm ci
+npm run lint
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Testele de browser folosesc o schemă separată în `ai_helpdesk_test`, API pe 8001, frontend pe 5174, răspunsuri ML/LLM simulate și date de autentificare exclusiv de test. Implicit PostgreSQL pentru browser este pe 55434; setează `POSTGRES_PORT` pentru instalația ta. `E2E_PYTHON` selectează interpretul Python, de exemplu `../.venv/bin/python`. Nu există mod de inferență simulată activabil în serverul de producție. În test server, parola `test-only` este destinată exclusiv PostgreSQL-ului izolat de test. Rulează browserul împotriva unui container de test cu autentificare trust pe loopback, conform CI; nu împotriva instanței aplicației.
+
+GitHub Actions rulează backend, lint, teste frontend, build și browser desktop/mobil cu PostgreSQL temporar. Nu descarcă modele și nu necesită GPU. Verificarea manuală cu modelele reale este descrisă în [docs/DEMO.md](docs/DEMO.md).
+
+## Limitele reale ale modelelor
+
+- Qwen poate repeta întrebări, rata schimbări de limbă sau introduce detalii neconfirmate. Generatorul ciornei primește numai mesajele utilizatorului, în ordine, pentru a exclude întrebările și exemplele asistentului din sursa factuală. În verificarea reală au apărut întrebări repetitive și generalizări precum „niciun port” în loc de „alt port”. Prompturile cer o clarificare odată și respectarea corecturilor, dar nu garantează rezultatul; ciorna rămâne editabilă și confirmarea este obligatorie.
+- Context Ollama: 2048 tokeni; maximum 16 mesaje deja existente și 4000 caractere la verificarea unei noi intrări. Răspunsurile folosesc maximum 400 tokeni generați. Limita în caractere nu garantează încadrarea în contextul tokenizat.
+- XLM-R v2 trunchiază la 256 tokeni și întoarce o categorie, fără probabilități calibrate sau detecție sigură a cazurilor din afara domeniului.
+- Raportul `ml/reports/grouped/test_comparison.json` compară baseline SVM și XLM-R anterior; **nu reprezintă rezultatele v2**.
+- Adaptarea bilingvă v2 este un experiment pe un set mic. `ml/reports/v1_v2_bilingual_holdout.csv` conține 16 scenarii în două limbi; nu justifică afirmații despre performanța generală pe tichete reale. Separarea scenariilor și reproducerea experimentului sunt necesare înaintea oricărei concluzii mai largi.
+- Nu sunt implementate recuperarea parolei, verificarea emailului, MFA sau administrarea conturilor. Pentru expunere publică sunt necesare HTTPS, operare/backup, o politică de retenție și o analiză suplimentară de securitate.
+
+## Starea implementării
+
+Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Scenariu RO/EN: [docs/DEMO.md](docs/DEMO.md).

@@ -3,6 +3,8 @@
 !backend/Dockerfile
 !backend/requirements.runtime.txt
 !backend/requirements.lock.txt
+!backend/migrations/
+!backend/migrations/**
 !backend/app/
 !backend/app/**
 **/__pycache__/
