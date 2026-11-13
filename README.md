@@ -165,6 +165,6 @@ Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](doc
 
 ## Livrarea în curs
 
-Etapele 1–4 sunt publicate în branchuri tematice cu CI reușit pentru fiecare PR din lanț. Etapa 4 adaugă revizuire ML explicită, export support-only minim și evaluare reproductibilă pentru artefactele locale disponibile; nu reantrenează și nu schimbă modelul activ. Etapa 5 a verificat local integrarea prin Nginx, migrarea de la zero, restartul și fluxuri RO/EN reale într-un stack temporar izolat. Detaliile și limitele sunt în [planul de implementare](docs/IMPLEMENTATION_PLAN.md). Livrarea finală a etapei 5 și verificarea CI sunt încă în curs; PR-urile nu sunt integrate în branchul implicit.
+Etapele 1–4 sunt publicate în branchuri tematice cu CI reușit pentru fiecare PR din lanț. Etapa 4 adaugă revizuire ML explicită, export support-only minim și evaluare reproductibilă pentru artefactele locale disponibile; nu reantrenează și nu schimbă modelul activ. Etapa 5 a verificat local integrarea prin Nginx, migrarea de la zero, restartul și fluxuri RO/EN reale într-un stack temporar izolat; verificările browser includ focusul tastaturii și un control țintit al contrastului. Detaliile și limitele sunt în [planul de implementare](docs/IMPLEMENTATION_PLAN.md). Verificarea CI pentru etapa 5 a primei versiuni trecuse, iar commitul cu ajustarea contrastului urmează să ruleze din nou; PR-urile nu sunt integrate în branchul implicit.
 
 Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).
