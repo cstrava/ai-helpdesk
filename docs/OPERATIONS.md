@@ -46,7 +46,9 @@ Compară schema, numărătorile, conținutul și secvențele cu sursa; restaurar
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
 ```
 
-Migrările sunt tranzacționale și serializate. Etapa 1 întărește adoptarea migrărilor legacy 001–003. Etapa 2 adaugă `005_ticket_collaboration.sql`; trebuie aplicată înainte de pornirea noului cod. Păstrează datele existente, adaugă noile tabele/câmpuri și folosește numai auditul existent pentru datele istorice de rezolvare. O schemă parțială este respinsă fără înregistrări noi de migrare. Nu modifica SQL deja aplicat și nu șterge manual înregistrări din schema_migrations pentru a forța adoptarea.
+Migrările sunt tranzacționale și serializate. Etapa 1 întărește adoptarea migrărilor legacy 001–003. Migrarea 005 adaugă colaborarea pe tichet, 006 impactul/notificările, iar 007 revizuirile explicite de categorie și invalidarea lor la editarea titlului, descrierii sau categoriei. Ele extind schema fără ștergerea datelor existente. Migrarea 005 folosește numai auditul existent pentru datele istorice de rezolvare. O schemă parțială este respinsă fără înregistrări noi de migrare. Nu modifica SQL deja aplicat și nu șterge manual înregistrări din schema_migrations pentru a forța adoptarea.
+
+Exportul CSV ML conține text de tichet și proveniență. Păstrează-l în afara Git și a materialelor publice; verifică și anonimizează conținutul înainte de reutilizare. Revizuirea etichetei nu este o verificare de date personale.
 
 ## Teste separate de baza aplicației
 

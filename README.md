@@ -87,7 +87,7 @@ Nu se șterg volume, date sau modele. Înaintea actualizării unei baze importan
 ## Roluri și sesiuni
 
 - **user:** conversații și tichete proprii, ciornă editabilă, confirmare, urmărirea statusului și istoricului.
-- **support:** aceleași funcții personale, plus acces la toate tichetele, filtre de atribuire/prioritate, preluare și reasignare, prioritate `low`/`normal`/`high`/`urgent`, rezolvare cu răspuns, dashboard descriptiv și notificări în aplicație.
+- **support:** aceleași funcții personale, plus acces la toate tichetele, filtre de atribuire/prioritate, preluare și reasignare, prioritate `low`/`normal`/`high`/`urgent`, rezolvare cu răspuns, dashboard descriptiv, notificări în aplicație, revizuire explicită a categoriei pentru evaluare ML și export CSV minimal.
 - Parole cu scrypt și sare aleatoare; sesiuni opace stocate în DB prin hash, cookie HttpOnly/SameSite=Lax, expirare la 8 ore și invalidare la logout. Tokenul CSRF este asociat sesiunii și transmis prin antet la operațiile de scriere; verificarea originii completează protecția. Repere: [OWASP sesiuni](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [OWASP CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
 - Login și înregistrare au limitare persistentă de 30 cereri / 10 minute per conexiune directă și operație. În configurația proxy locală, utilizatorii împart această limită; aplicația este destinată demonstrației locale.
 
@@ -149,12 +149,22 @@ GitHub Actions rulează backend, lint, teste frontend, build și browser desktop
 - Adaptarea bilingvă v2 este un experiment pe un set mic. `ml/reports/v1_v2_bilingual_holdout.csv` conține 16 scenarii în două limbi; nu justifică afirmații despre performanța generală pe tichete reale. Separarea scenariilor și reproducerea experimentului sunt necesare înaintea oricărei concluzii mai largi.
 - Nu sunt implementate recuperarea parolei, verificarea emailului, MFA sau administrarea conturilor. Pentru expunere publică sunt necesare HTTPS, operare/backup, o politică de retenție și o analiză suplimentară de securitate.
 
+## Evaluare ML reproductibilă
+
+Modelele și dataseturile nu sunt incluse în Git. Cu artefactele locale v1/v2, baseline-ul grouped și mediul CPU din backend instalat, rulează:
+
+```bash
+.venv/bin/python ml/src/reproduce_evaluation.py
+```
+
+Pentru un mediu separat, instalează PyTorch CPU din indexul oficial PyTorch și apoi `ml/requirements.evaluation.txt`. Scriptul rulează doar inferență și scrie un raport JSON fără texte în `ml/reports/reproducible_v1_v2_baseline.json`. Nu reantrenează modele și nu evaluează v2 pe grouped test. Detalii, limitări și scorurile efective: [docs/ML_EVALUATION.md](docs/ML_EVALUATION.md).
+
 ## Starea implementării
 
 Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Scenariu RO/EN: [docs/DEMO.md](docs/DEMO.md).
 
 ## Livrarea în curs
 
-Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Etapa 2 adaugă răspunsuri publice, note interne support-only, preluare/atribuire, rezolvare cu mesaj și redeschidere cu motiv, protejate prin versiuni și tranzacții. Etapa 3 este implementată local pe branchul de lucru: impact declarat, prioritate auditată, filtre support, dashboard descriptiv și notificări persistente; verificarea integrată/CI pentru etapa 3 urmează. Feedbackul și evaluarea ML rămân de făcut. Proiectul nu este declarat complet.
+Etapele 1–3 sunt publicate în branchuri tematice și CI pentru etapa 3 a trecut. Etapa 4 adaugă acum revizuire ML explicită, export support-only minim și un script de evaluare reproductibilă pentru modelele disponibile; nu reantrenează și nu schimbă modelul activ. Etapa 5 de integrare finală rămâne.
 
 Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).
