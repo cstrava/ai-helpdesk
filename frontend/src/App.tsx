@@ -12,6 +12,7 @@ import { request, setCsrfToken, errorText } from "./api";
 import { clearUnsaved } from "./unsaved";
 import Chat from "./Chat";
 import Tickets from "./Tickets";
+import Notifications from "./Notifications";
 export default function App() {
   const [account, setAccount] = useState<Account | null>(null);
   const [checking, setChecking] = useState(true);
@@ -156,6 +157,7 @@ export default function App() {
             {page === "chat" ? "Asistent IT" : "Tichete"}
           </span>
           <span className="local-label">Procesare locală</span>
+          <Notifications onOpen={(id) => { setTicketId(id); setPage("tickets"); }} />
           <button className="button secondary mobile-logout" onClick={logout}>
             Deconectare
           </button>

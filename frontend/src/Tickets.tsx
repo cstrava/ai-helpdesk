@@ -29,10 +29,23 @@ export default function Tickets({
   support: boolean;
   initialTicketId?: string | null;
 }) {
+  const [dashboard, setDashboard] = useState<{
+    days: number;
+    status_counts: { status: string; count: number }[];
+    unassigned_count: number;
+    category_counts: { category: string; count: number }[];
+    priority_counts: { priority: string; count: number }[];
+    avg_first_reply_seconds: number | null; without_public_support_reply: number;
+    avg_first_resolution_seconds: number | null; without_first_resolution_event: number;
+  } | null>(null);
+  const [dashboardError, setDashboardError] = useState("");
   const [rows, setRows] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [assignmentFilter, setAssignmentFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [priority, setPriority] = useState<Ticket["priority"]>("normal");
   const [events, setEvents] = useState<
     {
       id: number;
@@ -67,6 +80,7 @@ export default function Tickets({
         setSelected(ticket);
         setCategory(ticket.final_category);
         setStatus(ticket.status);
+        setPriority(ticket.priority ?? "normal");
       })
       .catch((cause) => {
         if (active) setError(errorText(cause));
@@ -86,6 +100,9 @@ export default function Tickets({
     });
     if (filter) query.set("status", filter);
     if (categoryFilter) query.set("category", categoryFilter);
+    if (priorityFilter) query.set("priority", priorityFilter);
+    if (assignmentFilter === "mine") query.set("assigned_to_me", "true");
+    if (assignmentFilter === "unassigned") query.set("unassigned", "true");
     if (search) query.set("search", search);
     request<Ticket[]>(`/tickets?${query}`)
       .then((result) => {
@@ -100,7 +117,28 @@ export default function Tickets({
     return () => {
       active = false;
     };
-  }, [filter, categoryFilter, search, page, reload, refresh]);
+  }, [
+    filter,
+    categoryFilter,
+    priorityFilter,
+    assignmentFilter,
+    search,
+    page,
+    reload,
+    refresh,
+  ]);
+  useEffect(() => {
+    if (!support) return;
+    request<NonNullable<typeof dashboard>>("/support/dashboard?days=30")
+      .then((data) => {
+        setDashboard(data);
+        setDashboardError("");
+      })
+      .catch((cause) => {
+        setDashboard(null);
+        setDashboardError(errorText(cause));
+      });
+  }, [support, reload, refresh]);
   useEffect(() => {
     let active = true;
     if (!selected) return;
@@ -125,6 +163,7 @@ export default function Tickets({
     setSelected(ticket);
     setCategory(ticket.final_category);
     setStatus(ticket.status);
+    setPriority(ticket.priority ?? "normal");
     setSaveError("");
     setResolution("");
     resolutionId.current = null;
@@ -142,6 +181,7 @@ export default function Tickets({
       await request<Ticket>(`/tickets/${selected.id}`, "PATCH", {
         final_category: category,
         status,
+        priority,
         expected_version: selected.version,
         ...(resolving
           ? {
@@ -193,6 +233,61 @@ export default function Tickets({
         </div>
         <span className="badge subtle">Cele mai recente primele</span>
       </div>
+      {support && dashboard && (
+        <section
+          className="card support-dashboard"
+          aria-label={`Rezumat support pe ultimele ${dashboard.days} de zile`}
+        >
+          <h2>Rezumat · ultimele {dashboard.days} zile</h2>
+          <div className="dashboard-grid">
+            <div>
+              <strong>{dashboard.unassigned_count}</strong>
+              <span>Neatribuite</span>
+            </div>
+            {dashboard.status_counts.map((item) => (
+              <div key={item.status}>
+                <strong>{item.count}</strong>
+                <span>{statusLabels[item.status as Status] ?? item.status}</span>
+              </div>
+            ))}
+            <div>
+              <strong>
+                {dashboard.avg_first_reply_seconds === null
+                  ? "—"
+                  : `${Math.round(dashboard.avg_first_reply_seconds / 60)} min`}
+              </strong>
+              <span>
+                Primul răspuns public · {dashboard.without_public_support_reply} fără
+                răspuns
+              </span>
+            </div>
+            <div>
+              <strong>
+                {dashboard.avg_first_resolution_seconds === null
+                  ? "—"
+                  : `${Math.round(dashboard.avg_first_resolution_seconds / 3600)} h`}
+              </strong>
+              <span>
+                Prima rezolvare · {dashboard.without_first_resolution_event} fără eveniment
+              </span>
+            </div>
+          </div>
+          <p className="muted">
+            Metrici descriptive, nu SLA-uri. Media include numai evenimente cunoscute;
+            notele interne și răspunsurile utilizatorilor sunt excluse.
+          </p>
+          <p className="muted">
+            Categorii: {dashboard.category_counts.map((x) => `${x.category} ${x.count}`).join(" · ") || "—"} ·
+            Priorități: {dashboard.priority_counts.map((x) => `${x.priority} ${x.count}`).join(" · ") || "—"}
+          </p>
+        </section>
+      )}
+      {support && dashboardError && (
+        <p className="error" role="alert">
+          Rezumatul nu este disponibil: {dashboardError}. Folosește Actualizează pentru
+          retry.
+        </p>
+      )}
       <section className="card ticket-list">
         <div className="list-toolbar">
           <div>
@@ -220,6 +315,41 @@ export default function Tickets({
                 ))}
               </select>
             </label>
+            {support && (
+              <label>
+                Prioritate
+                <select
+                  aria-label="Filtrează după prioritate"
+                  value={priorityFilter}
+                  onChange={(event) => {
+                    setPriorityFilter(event.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">Toate prioritățile</option>
+                  {["low", "normal", "high", "urgent"].map((item) => (
+                    <option key={item} value={item}>{item}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {support && (
+              <label>
+                Atribuire
+                <select
+                  aria-label="Filtrează după atribuire"
+                  value={assignmentFilter}
+                  onChange={(event) => {
+                    setAssignmentFilter(event.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">Toate tichetele</option>
+                  <option value="mine">Atribuite mie</option>
+                  <option value="unassigned">Neatribuite</option>
+                </select>
+              </label>
+            )}
             <label className="search-field">
               <Search size={17} />
               <input
@@ -391,6 +521,11 @@ export default function Tickets({
           </h2>
           <p className="hint mono">{selected.id}</p>
           <div className="ticket-body preserve">{selected.text}</div>
+          <p>
+            Impact declarat: {
+              ({ individual: "Doar eu", team: "Echipa mea", organization: "Organizația" } as Record<string, string>)[selected.impact ?? ""] ?? "Nespecificat"
+            }
+          </p>
           <dl className="metadata">
             <dt>Creat</dt>
             <dd>{date(selected.created_at)}</dd>
@@ -464,6 +599,22 @@ export default function Tickets({
                     {categories.map((item) => (
                       <option key={item}>{item}</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="edit-priority">Prioritate</label>
+                  <select
+                    id="edit-priority"
+                    value={priority}
+                    disabled={saving}
+                    onChange={(event) =>
+                      setPriority(event.target.value as Ticket["priority"])
+                    }
+                  >
+                    <option value="low">Scăzută</option>
+                    <option value="normal">Normală</option>
+                    <option value="high">Ridicată</option>
+                    <option value="urgent">Urgentă</option>
                   </select>
                 </div>
                 <div>
