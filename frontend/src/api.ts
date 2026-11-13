@@ -102,6 +102,33 @@ export async function request<T>(
     throw new ApiError("Serverul a trimis un răspuns nevalid.", 502);
   return data as T;
 }
+
+export async function downloadCsv(path: string, filename: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, { credentials: "same-origin" });
+  } catch {
+    throw new ApiError("Conexiunea cu serverul a fost întreruptă.", 0);
+  }
+  if (!response.ok) {
+    if (response.status === 401) window.dispatchEvent(new Event("session-expired"));
+    const data = (await response.json().catch(() => null)) as {
+      detail?: string;
+    } | null;
+    throw new ApiError(
+      data?.detail ?? `Serverul a răspuns cu eroarea ${response.status}.`,
+      response.status,
+    );
+  }
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 export const errorText = (error: unknown) =>
   error instanceof Error ? error.message : "A apărut o eroare neașteptată.";
 

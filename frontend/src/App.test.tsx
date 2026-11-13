@@ -45,6 +45,16 @@ function mockApi(failMessage = false) {
         avg_first_reply_seconds: null, without_public_support_reply: 1,
         avg_first_resolution_seconds: null, without_first_resolution_event: 1,
       };
+      else if (path.endsWith("/category-review") && init?.method === "POST")
+        data = {
+          id: "review-1",
+          verified_category: JSON.parse(String(init.body)).verified_category,
+          model_version: "xlm_roberta_helpdesk_v2",
+          text_sha256: "a".repeat(64),
+          reason: JSON.parse(String(init.body)).reason,
+          reviewed_at: "2026-11-13T10:00:00Z",
+        };
+      else if (path.endsWith("/category-review")) data = { review: null };
       else if (path.startsWith("/api/conversations?")) data = [];
       else if (path.endsWith("/events")) data = [];
       else if (path === "/api/conversations") data = { id: "conversation-1" };
@@ -194,6 +204,25 @@ describe("Helpdesk frontend", () => {
     await user.selectOptions(screen.getByLabelText("Filtrează după atribuire"), "mine");
     await user.selectOptions(screen.getByLabelText("Filtrează după prioritate"), "urgent");
     await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).includes("assigned_to_me=true") && String(url).includes("priority=urgent"))).toBe(true));
+  });
+  it("requires a separate explicit category review for evaluation", async () => {
+    const fetchMock = mockApi(), user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Mesajul tău");
+    await user.click(screen.getByRole("button", { name: "Tichete" }));
+    await user.click(await screen.findByRole("button", { name: "Acces pontaj" }));
+    await user.selectOptions(screen.getByLabelText("Etichetă verificată"), "Hardware");
+    await user.type(screen.getByLabelText("Motiv (opțional)"), "Confirmed by support");
+    await user.click(screen.getByRole("button", { name: "Marchează ca revizuit" }));
+    await screen.findByText(/Exemplu revizuit la/);
+    const reviewCall = fetchMock.mock.calls.find(([url, init]) =>
+      String(url).endsWith("/category-review") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(reviewCall?.[1]?.body))).toMatchObject({
+      verified_category: "Hardware",
+      reason: "Confirmed by support",
+      request_id: expect.any(String),
+    });
   });
   it("keeps the current conversation when cancelling a reset", async () => {
     mockApi();

@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Download,
   Check,
   CircleAlert,
   LoaderCircle,
@@ -13,13 +14,21 @@ import {
   Ticket as TicketIcon,
   X,
 } from "lucide-react";
-import { categories, errorText, request, statusLabels } from "./api";
+import { categories, downloadCsv, errorText, request, statusLabels } from "./api";
 import type { Status, Ticket } from "./api";
 const date = (value: string) =>
   new Intl.DateTimeFormat("ro-RO", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+type CategoryReview = {
+  id: string;
+  verified_category: (typeof categories)[number];
+  model_version: string;
+  text_sha256: string;
+  reason: string | null;
+  reviewed_at: string;
+};
 export default function Tickets({
   refresh,
   support,
@@ -39,6 +48,14 @@ export default function Tickets({
     avg_first_resolution_seconds: number | null; without_first_resolution_event: number;
   } | null>(null);
   const [dashboardError, setDashboardError] = useState("");
+  const [review, setReview] = useState<CategoryReview | null>(null);
+  const [reviewCategory, setReviewCategory] = useState<(typeof categories)[number]>("Access");
+  const [reviewReason, setReviewReason] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const reviewRequestId = useRef<string | null>(null);
   const [rows, setRows] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(0);
@@ -159,6 +176,34 @@ export default function Tickets({
       active = false;
     };
   }, [selected]);
+  useEffect(() => {
+    let active = true;
+    if (!selected || !support) {
+      setReview(null);
+      return;
+    }
+    setReview(null);
+    setReviewCategory(selected.final_category as (typeof categories)[number]);
+    setReviewReason("");
+    setReviewError("");
+    request<{ review: CategoryReview | null }>(
+      `/tickets/${selected.id}/category-review`,
+    )
+      .then(({ review: data }) => {
+        if (!active) return;
+        setReview(data);
+        if (data) {
+          setReviewCategory(data.verified_category);
+          setReviewReason(data.reason ?? "");
+        }
+      })
+      .catch((cause) => {
+        if (active) setReviewError(errorText(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, [selected, support]);
   function open(ticket: Ticket) {
     setSelected(ticket);
     setCategory(ticket.final_category);
@@ -168,6 +213,46 @@ export default function Tickets({
     setResolution("");
     resolutionId.current = null;
     setNotice("");
+    reviewRequestId.current = null;
+  }
+  async function saveCategoryReview(event: FormEvent) {
+    event.preventDefault();
+    if (!selected || reviewBusy) return;
+    setReviewBusy(true);
+    setReviewError("");
+    reviewRequestId.current ??= crypto.randomUUID();
+    try {
+      const result = await request<CategoryReview>(
+        `/tickets/${selected.id}/category-review`,
+        "POST",
+        {
+          verified_category: reviewCategory,
+          reason: reviewReason.trim() || null,
+          request_id: reviewRequestId.current,
+        },
+      );
+      setReview(result);
+      reviewRequestId.current = null;
+    } catch (cause) {
+      setReviewError(errorText(cause));
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+  async function exportReviewed() {
+    if (exportBusy) return;
+    setExportBusy(true);
+    setExportError("");
+    try {
+      await downloadCsv(
+        "/support/category-review-export",
+        "ai-helpdesk-reviewed-examples.csv",
+      );
+    } catch (cause) {
+      setExportError(errorText(cause));
+    } finally {
+      setExportBusy(false);
+    }
   }
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -222,7 +307,18 @@ export default function Tickets({
           <RefreshCw size={16} />
           Actualizează
         </button>
+        {support && (
+          <button
+            className="button secondary"
+            disabled={exportBusy}
+            onClick={() => void exportReviewed()}
+          >
+            <Download size={16} />
+            {exportBusy ? "Se exportă…" : "Exportă exemple revizuite"}
+          </button>
+        )}
       </header>
+      {support && exportError && <p className="error" role="alert">Exportul a eșuat: {exportError}</p>}
       <div className="ticket-intro">
         <span className="assistant-mark">
           <TicketIcon size={22} />
@@ -538,6 +634,47 @@ export default function Tickets({
               </>
             )}
           </dl>
+          {support && (
+            <form className="category-review" onSubmit={saveCategoryReview}>
+              <h3>Revizuire explicită pentru evaluare ML</h3>
+              <p className="hint">
+                Corectarea categoriei tichetului nu aprobă automat acest exemplu.
+                Confirmă separat eticheta și verifică textul înainte de export.
+              </p>
+              {review && (
+                <p role="status">
+                  Exemplu revizuit la {date(review.reviewed_at)} · {review.model_version}
+                </p>
+              )}
+              {reviewError && <p role="alert" className="error">{reviewError}</p>}
+              <label htmlFor="verified-category">Etichetă verificată</label>
+              <select
+                id="verified-category"
+                value={reviewCategory}
+                disabled={reviewBusy}
+                onChange={(event) => {
+                  setReviewCategory(event.target.value as (typeof categories)[number]);
+                  reviewRequestId.current = null;
+                }}
+              >
+                {categories.map((item) => <option key={item}>{item}</option>)}
+              </select>
+              <label htmlFor="review-reason">Motiv (opțional)</label>
+              <textarea
+                id="review-reason"
+                maxLength={1000}
+                value={reviewReason}
+                disabled={reviewBusy}
+                onChange={(event) => {
+                  setReviewReason(event.target.value);
+                  reviewRequestId.current = null;
+                }}
+              />
+              <button className="button secondary" disabled={reviewBusy}>
+                {reviewBusy ? "Se salvează…" : "Marchează ca revizuit"}
+              </button>
+            </form>
+          )}
           <TicketThread
             key={selected.id}
             ticket={selected}

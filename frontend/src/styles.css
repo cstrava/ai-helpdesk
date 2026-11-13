@@ -1346,3 +1346,9 @@ tbody tr:hover {
 .dashboard-grid > div { display: grid; gap: 4px; padding: 14px; border-radius: 12px; background: #f2f2e7; }
 .dashboard-grid strong { font-size: 1.35rem; color: #245e45; }
 .dashboard-grid span { font-size: .85rem; }
+.category-review { display: grid; gap: 10px; margin: 20px 0; padding: 18px; border: 1px solid #cbdcc8; border-radius: 14px; background: #f1f5e9; }
+.category-review h3,
+.category-review p { margin-block: 4px; }
+.category-review label { font-weight: 650; }
+.category-review select,
+.category-review textarea { width: 100%; padding: 10px 12px; border: 1px solid #b9cbb5; border-radius: 9px; color: #213c35; background: #fffdf5; }
