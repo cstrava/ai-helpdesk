@@ -12,7 +12,7 @@ Pornește aplicația conform README. Creează două conturi user din interfață
 4. Pregătește ciorna. Verifică să păstreze corectura și să nu inventeze detalii. Editează titlul.
 5. Confirmă o singură dată. Notează ID-ul, categoria și statusul open.
 6. Reîncarcă pagina: conversația și legătura spre tichet trebuie recuperate; nu se mai acceptă mesaje în conversația convertită.
-7. Ca support, caută ID-ul tichetului, corectează categoria dacă este cazul, treci în in_progress, apoi resolved. Verifică istoricul.
+7. Ca support, caută ID-ul tichetului, preia-l, corectează categoria dacă este cazul și treci în in_progress. Adaugă un răspuns public și o notă internă. Marchează resolved cu mesaj de rezolvare și verifică istoricul.
 8. Ca user, verifică starea și istoricul; nu trebuie să existe controale de editare. Al doilea user nu vede datele primului.
 
 ## English and language switching
@@ -32,12 +32,12 @@ Verifică desktop și telefon, Tab/Shift+Tab în dialoguri, Escape, focus vizibi
 
 ## Recuperare și verificare — etapa 1 (5–10 minute)
 
-Acest scenariu demonstrează funcțiile existente și stabilitatea lor. Firul public de suport, preluarea și redeschiderea sunt încă planificate. Nu sunt prezentate ca implementate. Pentru date sintetice, folosește un mediu separat; nu transforma baza personală în fixture.
+Acest scenariu demonstrează stabilitatea și colaborarea implementate în etapele 1–2. Dashboardul, notificările și feedbackul ML rămân planificate. Pentru date sintetice, folosește un mediu separat; nu transforma baza personală în fixture.
 
 1. **Minutele 0–2:** autentifică-te, scrie un mesaj fără să-l trimiți, apoi refresh. Mesajul trebuie recuperat în aceeași filă. Trimite-l și verifică răspunsul.
 2. **Minutele 2–4:** pregătește ciorna, modifică titlul și descrierea, apoi refresh. Modificările trebuie recuperate fără creare de tichet.
 3. **Minutele 4–5:** confirmă și refresh. Verifică același ID și conversația închisă. Nu trebuie să reapară ciorna.
-4. **Minutele 5–7:** ca support, caută ID-ul, modifică categoria/statusul și inspectează auditul. Ca al doilea user verifică izolarea. Creează conturile explicit conform README; pornirea nu le creează automat.
+4. **Minutele 5–7:** ca support, caută ID-ul, preia tichetul, adaugă răspuns public și notă internă, modifică categoria și rezolvă cu mesaj. Ca proprietar, verifică răspunsul/rezolvarea și absența notei; redeschide cu motiv. Ca al doilea user verifică izolarea. Creează conturile explicit conform README; pornirea nu le creează automat.
 5. **Minutele 7–9:** repetă o conversație scurtă în engleză, verificând manual fidelitatea ciornei. Erorile Qwen sunt posibile și trebuie corectate înainte de confirmare.
 6. **Minutul 9–10:** logout, login și verifică absența conținutului nesalvat. Istoricul salvat în DB rămâne accesibil.
 

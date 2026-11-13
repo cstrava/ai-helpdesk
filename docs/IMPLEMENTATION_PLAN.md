@@ -21,8 +21,8 @@ Bază verificată: branch implicit `feature/data-pipeline`, commit `8474796`, wo
 
 | Etapă | Criterii verificabile | Stare |
 |---|---|---|
-| 1 Stabilitate | Instalare curată, typecheck inclusiv Node, lint/test/build; recuperare confirmare după răspuns pierdut fără duplicate; sessionStorage per cont/conversație cu ștergere la logout; respingere explicită a schemelor legacy parțiale și păstrarea datelor | Implementată pe `fix/application-reliability`; verificări locale trecute, CI nou în așteptare |
-| 2 Colaborare | Fir public separat de AI, note interne invizibile userilor, mesaje idempotente, atribuiri concurente protejate, rezolvare cu mesaj și redeschidere cu motiv; API/UI și teste de izolare | Neîncepută |
+| 1 Stabilitate | Instalare curată, typecheck inclusiv Node, lint/test/build; recuperare confirmare după răspuns pierdut fără duplicate; sessionStorage per cont/conversație cu ștergere la logout; respingere explicită a schemelor legacy parțiale și păstrarea datelor | Implementată pe `fix/application-reliability`; verificări locale trecute; [CI push reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43454447275), [PR #1](https://github.com/cstrava/ai-helpdesk/pull/1) |
+| 2 Colaborare | Fir public separat de AI, note interne invizibile userilor, mesaje idempotente, atribuiri concurente protejate, rezolvare cu mesaj și redeschidere cu motiv; API/UI și teste de izolare | Implementată pe `feat/ticket-collaboration`, bază PR #1; verificări locale și reale trecute, CI nou în așteptare |
 | 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Neîncepută |
 | 4 Feedback ML | Revizuire explicită invalidabilă, export minimal support-only, evaluare reproductibilă cu proveniență și metrici RO/EN separate; fără reantrenare sau înlocuirea modelului | Neîncepută |
 | 5 Integrare și documentație | E2E desktop/mobil pentru flux complet, migrare de la zero și upgrade, restart/Nginx, RO/EN real în mediu izolat, instrucțiuni backup/restore/demo și CI final | Neîncepută |
@@ -91,3 +91,22 @@ La 9 noiembrie, CI era configurat, dar nu exista o execuție remote. La 13 noiem
 - După restartul exclusiv al API-ului de verificare, sesiunea, cele două conversații și legăturile la tichete au persistat; runnerul a rulat din nou fără recrearea datelor.
 - Observație calitativă: Qwen a cerut aplicația de apeluri în RO și dispozitivul în EN deși problema/impactul erau deja descrise. Ciornele inspectate nu au introdus detalii noi evidente. Două exemple nu reprezintă evaluare generală ML. Modelul activ și ponderile nu au fost modificate; scorurile istorice v1/v2 rămân distincte.
 - Nu am aplicat modificări sau teste pe baza personală și nu am actualizat containerele aplicației existente. Etapele 2–5 rămân neterminate.
+
+## Verificări etapa 2 — 2026-11-13
+
+- Migrarea 005 adaugă mesaje publice/note interne, atribuirea, prioritatea implicită normal și versiuni optimiste. Upgrade 004→005 verificat cu date sintetice: textul, versiunea modelului și owner null păstrate; data primei rezolvări preluată numai din audit datat, altfel null. Migrare repetabilă și pornire de la zero testate.
+- 54 teste backend trecute pe PostgreSQL izolat: autorizare/IDOR, note interne absente din toate răspunsurile user testate, cursor privat refuzat, mesaje concurente deduplicate, preluări concurente fără suprascriere, conflict la status cu rollback, rezolvare/redeschidere concurente, păstrarea primei rezolvări și upgrade.
+- 22 teste frontend trecute; typecheck, lint și build trecute. Teste noi pentru cheie de retry stabilă, text păstrat după eșec, note interne distincte, claim cu versiune și motiv obligatoriu de redeschidere.
+- Playwright desktop/mobil: flux extins cu preluare support, răspuns, notă internă, mesaj de rezolvare și redeschidere de către proprietar; păstrează verificarea recuperării confirmării după 502. Inferența este simulată în browser.
+- Imagini API/frontend separate construite. Prin Nginx temporar (5175), două fluxuri reale RO/EN au trecut pe baza ai_helpdesk_smoke: ciornă/clasificare/confirmare, preluare, reply deduplicat, notă invizibilă proprietarului, rezolvare și redeschidere. Restartul API-ului temporar a păstrat sesiunea și istoricul. Ciornele inspectate nu au introdus detalii noi evidente; Qwen continuă să ceară uneori clarificări neesențiale. Nu este evaluare ML generală.
+- Captură mobilă inspectată; eliminat autofocusul categoriei care putea derula dialogul direct la formularul de jos. Stilul verde/crem păstrat, nota internă are marcaj textual și fundal distinct. Nu este un audit complet de accesibilitate.
+
+## Continuarea livrării
+
+Etapele 1–2 nu înseamnă finalizarea întregului proiect. Rămân:
+
+1. Etapa 3: filtre atribuite mie/neatribuite și prioritate, impact opțional declarat de user, editare/audit prioritate, dashboard cu formule și interval, notificări persistente cu polling și linkuri. Aceste funcții nu au încă endpointuri sau UI.
+2. Etapa 4: revizuire ML explicită invalidabilă, export support-only minimal, evaluare reproductibilă v1/v2/baseline cu metrici separate și raportarea regresiei pe validarea originală. Nu s-au reantrenat sau înlocuit modele.
+3. Etapa 5: verificare integrată a funcțiilor viitoare, demo final complet, audit mai larg de accesibilitate/contrast și documentație finală actualizată.
+
+Următoarea bază tehnică este `feat/ticket-collaboration`; PR-ul ei depinde de PR #1. Nu s-a făcut merge în branchul implicit. Baza personală și containerele aplicației existente nu au fost actualizate; înainte de pornirea noii versiuni este necesar backup verificat și migrarea 005.
