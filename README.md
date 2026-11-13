@@ -87,7 +87,7 @@ Nu se șterg volume, date sau modele. Înaintea actualizării unei baze importan
 ## Roluri și sesiuni
 
 - **user:** conversații și tichete proprii, ciornă editabilă, confirmare, urmărirea statusului și istoricului.
-- **support:** aceleași funcții personale, plus acces la toate tichetele, corectarea categoriei și schimbarea statusului `open`, `in_progress`, `resolved`.
+- **support:** aceleași funcții personale, plus acces la toate tichetele, filtre de atribuire/prioritate, preluare și reasignare, prioritate `low`/`normal`/`high`/`urgent`, rezolvare cu răspuns, dashboard descriptiv și notificări în aplicație.
 - Parole cu scrypt și sare aleatoare; sesiuni opace stocate în DB prin hash, cookie HttpOnly/SameSite=Lax, expirare la 8 ore și invalidare la logout. Tokenul CSRF este asociat sesiunii și transmis prin antet la operațiile de scriere; verificarea originii completează protecția. Repere: [OWASP sesiuni](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html), [OWASP CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html).
 - Login și înregistrare au limitare persistentă de 30 cereri / 10 minute per conexiune directă și operație. În configurația proxy locală, utilizatorii împart această limită; aplicația este destinată demonstrației locale.
 
@@ -96,10 +96,11 @@ Nu se șterg volume, date sau modele. Înaintea actualizării unei baze importan
 1. `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`.
 2. `POST /conversations`, `GET /conversations`, `GET /conversations/{id}`, `GET/POST /conversations/{id}/messages`.
 3. `POST /conversations/{id}/ticket-draft` generează o propunere fără salvare ca tichet.
-4. `POST /conversations/{id}/tickets` cere `title`, `description`, `last_message_id` și `confirmed: true`. Recalculează categoria pe textul editat. Respinge ciorne depășite și duplicate; blocarea rândului și constrângerea unică protejează și cererile concurente. `POST /tickets` răspunde 410 pentru a închide vechea cale fără confirmare.
-5. `GET /tickets` acceptă `search`, `status`, `category`, `limit` (1–100) și `offset`. Ordine: `created_at DESC, id DESC`; căutarea literală, fără diferență de majuscule, acoperă titlu, descriere și UUID. Paginarea offset poate reflecta inserări noi între cereri.
-6. `GET /tickets/{id}`, `PATCH /tickets/{id}` (support), `GET /tickets/{id}/events`. Auditul tranzacțional păstrează actorul, momentul și valorile vechi/noi; salvările fără schimbare nu creează evenimente.
-7. `POST /predict` este autentificat; `GET /health` este public.
+4. `POST /conversations/{id}/tickets` cere `title`, `description`, `last_message_id`, `confirmed: true` și acceptă impactul declarat opțional (`individual`, `team`, `organization`). Recalculează categoria pe textul editat. Respinge ciorne depășite și duplicate; blocarea rândului și constrângerea unică protejează și cererile concurente. `POST /tickets` răspunde 410 pentru a închide vechea cale fără confirmare.
+5. `GET /tickets` acceptă `search`, `status`, `category`, `priority`, `assigned_to_me`, `unassigned`, `limit` și `offset`. Ordine: `created_at DESC, id DESC`; căutarea literală, fără diferență de majuscule, acoperă titlu, descriere și UUID. Paginarea offset poate reflecta inserări noi între cereri.
+6. `GET /tickets/{id}`, `PATCH /tickets/{id}` (support: categorie/status/prioritate cu versiune), `GET /tickets/{id}/events`. Auditul tranzacțional păstrează actorul, momentul și valorile vechi/noi; salvările fără schimbare nu creează evenimente.
+7. `/support/dashboard` raportează distribuții și timpi descriptivi pentru ultimele 30 de zile; notificările persistente sunt actualizate în UI la 30 secunde. Formulele și excluderile sunt documentate în [API](docs/API.md). Valorile nu sunt SLA-uri.
+8. `POST /predict` este autentificat; `GET /health` este public.
 
 Conversațiile convertite sunt închise pentru mesaje noi. ID-ul conversației active este reținut local per cont, iar mesajele sunt recuperate din DB. Mesajul nesent și ciorna editată sunt păstrate în `sessionStorage`, separat per cont și conversație, în fila curentă. Nu sunt stocate credențiale sau tokenuri de autentificare. Datele editorului se curăță la logout/expirarea sesiunii și după trimitere/confirmare reușită. Închiderea filei încheie această recuperare; blocarea storage-ului în browser o poate dezactiva. O ciornă depășită nu este restaurată, iar o conversație convertită este recuperată din server fără suprascriere cu o ciornă locală.
 
@@ -154,6 +155,6 @@ Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](doc
 
 ## Livrarea în curs
 
-Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Etapa 2 adaugă răspunsuri publice, note interne support-only, preluare/atribuire, rezolvare cu mesaj și redeschidere cu motiv, protejate prin versiuni și tranzacții. Prioritatea este afișată cu default normal; editarea ei, impactul declarat, dashboardul, notificările și feedbackul ML sunt încă planificate. Proiectul nu este declarat complet.
+Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Etapa 2 adaugă răspunsuri publice, note interne support-only, preluare/atribuire, rezolvare cu mesaj și redeschidere cu motiv, protejate prin versiuni și tranzacții. Etapa 3 este implementată local pe branchul de lucru: impact declarat, prioritate auditată, filtre support, dashboard descriptiv și notificări persistente; verificarea integrată/CI pentru etapa 3 urmează. Feedbackul și evaluarea ML rămân de făcut. Proiectul nu este declarat complet.
 
 Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).

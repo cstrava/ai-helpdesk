@@ -29,18 +29,16 @@ După un răspuns pierdut clientul citește `GET /conversations/{id}`. Numai pre
 |---|---|
 | `GET /tickets` | user: proprii; support: toate, inclusiv cele istorice fără owner |
 | `GET /tickets/{id}` | aceleași reguli de vizibilitate |
-| `PATCH /tickets/{id}` | numai support; `final_category` și/sau `status`; fără câmpuri null sau necunoscute |
+| `PATCH /tickets/{id}` | numai support; `final_category`, `status` și/sau `priority`; statusul și prioritatea cer `expected_version` când se schimbă |
 | `GET /tickets/{id}/events` | cei care pot vedea tichetul; actor, dată, câmp, valori vechi/noi |
 | `POST /predict` | autentificat și CSRF; clasificare v2 |
 | `GET /health` | public; verifică disponibilitatea DB, fără inferență |
 
-Filtre: `search` (maximum 200 caractere; căutare literală case-insensitive în titlu/descriere/UUID), `status`, `category`, `limit` 1–100, `offset` ≥0. Ordine: created_at DESC, id DESC. Auditul este tranzacțional; salvările identice nu produc evenimente.
+Filtre: `search` (maximum 200 caractere; căutare literală case-insensitive în titlu/descriere/UUID), `status`, `category`, `priority`, `assigned_to_me=true` și `unassigned=true` (ultimele două numai support și mutual exclusive), `limit` 1–100, `offset` ≥0. Ordine: created_at DESC, id DESC. Auditul este tranzacțional; salvările identice nu produc evenimente.
 
 Accesul la resursele altui user returnează 404. Support nu primește automat acces la conversațiile AI ale altora. Stările sunt open, in_progress și resolved; regulile de tranziție, rezolvare și redeschidere sunt descrise mai jos.
 
-## Limitele livrării curente
-
-Nu există încă endpointuri pentru modificarea priorității, notificări, dashboard sau export ML. Nu presupune existența lor din plan. Testele browser/backend simulează inferența; serverul de producție nu oferă un mod mock.
+Testele browser/backend simulează inferența; serverul de producție nu oferă un mod mock.
 
 ## Colaborare pe tichet — etapa 2
 
@@ -61,4 +59,21 @@ Tranziții permise: open → in_progress sau resolved; in_progress → open sau 
 
 Idempotency: cheia request_id este unică per tichet și autor. Retry cu același conținut/vizibilitate/tip returnează același mesaj; reutilizarea pentru alt conținut produce 409. Mesajele de redeschidere se deduplică la fel. O confirmare de rezolvare repetată cu versiunea veche poate returna 409: reîncarcă tichetul, fără duplicarea mesajului. Două preluări sau tranziții concurente cu aceeași versiune au un singur câștigător.
 
-Notele interne sunt filtrate în SQL înaintea paginării pentru user; un cursor către o notă internă returnează 404. Nu sunt introduse în audit și nu schimbă versiunea/datele publice ale tichetului. UUID-urile evită expunerea unui contor secvențial. Nu există contoare publice de note. Exportul, dashboardul și notificările nu există încă și trebuie să păstreze aceeași regulă când sunt implementate.
+Notele interne sunt filtrate în SQL înaintea paginării pentru user; un cursor către o notă internă returnează 404. Nu sunt introduse în audit și nu schimbă versiunea/datele publice ale tichetului. UUID-urile evită expunerea unui contor secvențial. Nu există contoare publice de note.
+
+## Spațiul support — etapa 3
+
+`POST /conversations/{id}/tickets` acceptă câmpul opțional `impact`: `individual`, `team` sau `organization`. Acesta este declarat de utilizator, nu generat de model. `GET /tickets` returnează impactul; utilizatorul nu poate schimba prioritatea.
+
+Prioritatea este `low`, `normal`, `high` sau `urgent`; pentru datele vechi migrarea păstrează default `normal`. Modificarea este support-only, cere `expected_version` dacă valoarea chiar se schimbă și este înregistrată în `ticket_events`.
+
+| Endpoint | Reguli |
+|---|---|
+| `GET /support/dashboard?days=30` | support-only; zile între 1 și 365 |
+| `GET /notifications?limit=20&offset=0` | notificări proprii, paginație după created_at/id; numai tichetele accesibile |
+| `GET /notifications/unread-count` | număr necitit pentru destinatar |
+| `PATCH /notifications/{id}/read` | marchează notificarea destinatarului ca citită; 404 dacă nu este accesibilă |
+
+Notificările sunt persistente și deduplicate în tranzacția acțiunii-sursă. Răspunsurile publice notifică cealaltă parte (proprietarul și agentul atribuit); dacă tichetul este neatribuit, răspunsul proprietarului notifică echipa support. Notele interne nu notifică. Atribuirea și schimbarea statusului notifică proprietarul și agentul relevant, exceptând actorul. Polling-ul UI este la 30 secunde; nu se trimit emailuri.
+
+Dashboardul folosește o fereastră mobilă `[acum - days, acum]`, filtrată după `tickets.created_at`. Numerele pe status, categorie și prioritate și totalul neatribuit descriu tichetele create în interval. Primul răspuns este cel mai timpuriu mesaj public (`reply` sau `resolution`) al unui autor support, minus `tickets.created_at`; notele interne și mesajele user/AI sunt excluse. Prima rezolvare folosește `first_resolved_at - created_at`, câmp stabilit la prima tranziție în resolved. Mediile includ doar tichetele cu eveniment cunoscut; numărul fără eveniment este raportat separat. Datele istorice necunoscute rămân necunoscute. Valorile sunt descriptive, nu SLA-uri contractuale.
