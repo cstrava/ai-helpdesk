@@ -49,6 +49,12 @@ class TicketResponse(BaseModel):
     model_version: str
     status: Literal["open", "in_progress", "resolved"]
     created_at: datetime
+    assignee_id: UUID | None = None
+    assignee_email: str | None = None
+    priority: Literal["low", "normal", "high", "urgent"] = "normal"
+    version: int = 0
+    updated_at: datetime | None = None
+    first_resolved_at: datetime | None = None
 
 
 Category = Literal[
@@ -70,10 +76,18 @@ class TicketUpdate(BaseModel):
 
     final_category: Category | None = None
     status: TicketStatus | None = None
+    expected_version: Annotated[int, Field(strict=True, ge=0)] | None = None
+    resolution_message: (
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)
+        ]
+        | None
+    ) = None
+    request_id: UUID | None = None
 
     @model_validator(mode="after")
     def validate_update(self):
-        if not self.model_fields_set:
+        if not self.model_fields_set.intersection({"final_category", "status"}):
             raise ValueError("Trimite cel puțin un câmp de actualizat.")
 
         for field in self.model_fields_set:
@@ -204,7 +218,8 @@ def list_tickets(
                     final_category,
                     model_version,
                     status,
-                    created_at
+                    created_at, assignee_id, priority, version, updated_at, first_resolved_at,
+                    (SELECT email FROM users WHERE users.id=tickets.assignee_id) AS assignee_email
                 FROM tickets
                 WHERE (%s::text IS NULL OR status = %s)
                   AND (%s = 'support' OR owner_id = %s)
@@ -242,63 +257,12 @@ def update_ticket(
     update: TicketUpdate,
     user=Depends(current_user),
 ) -> TicketResponse:
-    if user["role"] != "support":
-        raise HTTPException(403, "Operație rezervată suportului.")
-    try:
-        with connect_db() as connection:
-            previous = connection.execute(
-                "SELECT final_category, status FROM tickets WHERE id=%s FOR UPDATE",
-                (ticket_id,),
-            ).fetchone()
-            if previous is None:
-                raise HTTPException(404, "Tichetul nu există.")
-            for field in update.model_fields_set:
-                value = getattr(update, field)
-                if previous[field] != value:
-                    connection.execute(
-                        "INSERT INTO ticket_events(ticket_id,actor_id,field,old_value,new_value) VALUES (%s,%s,%s,%s,%s)",
-                        (ticket_id, user["id"], field, previous[field], value),
-                    )
-            row = connection.execute(
-                """
-                UPDATE tickets
-                SET
-                    final_category = COALESCE(%s, final_category),
-                    status = COALESCE(%s, status)
-                WHERE id = %s
-                RETURNING
-                    id,
-                    text,
-                    title,
-                    conversation_id,
-                    predicted_category,
-                    final_category,
-                    model_version,
-                    status,
-                    created_at
-                """,
-                (
-                    update.final_category,
-                    update.status,
-                    ticket_id,
-                ),
-            ).fetchone()
+    from .collaboration import update_ticket as apply_update
 
-            if row is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Tichetul nu există.",
-                )
-
-            response = TicketResponse.model_validate(row)
-
-    except psycopg.OperationalError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Baza de date este momentan indisponibilă.",
-        ) from exc
-
-    return response
+    with connect_db() as connection:
+        return TicketResponse.model_validate(
+            apply_update(connection, ticket_id, update, user)
+        )
 
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
@@ -849,7 +813,7 @@ def create_ticket_from_conversation(
                     final_category,
                     model_version,
                     status,
-                    created_at
+                    created_at, assignee_id, priority, version, updated_at, first_resolved_at
                 """,
                 (
                     confirmation.title,
@@ -929,7 +893,7 @@ def get_conversation(conversation_id: UUID, user=Depends(current_user)):
 def get_ticket(ticket_id: UUID, user=Depends(current_user)):
     with connect_db() as connection:
         row = connection.execute(
-            "SELECT * FROM tickets WHERE id=%s AND (%s='support' OR owner_id=%s)",
+            "SELECT tickets.*, (SELECT email FROM users WHERE users.id=tickets.assignee_id) AS assignee_email FROM tickets WHERE id=%s AND (%s='support' OR owner_id=%s)",
             (ticket_id, user["role"], user["id"]),
         ).fetchone()
         if row is None:
@@ -945,3 +909,8 @@ def ticket_events(ticket_id: UUID, user=Depends(current_user)):
             "SELECT e.id,e.field,e.old_value,e.new_value,e.created_at,u.email AS actor FROM ticket_events e JOIN users u ON u.id=e.actor_id WHERE ticket_id=%s ORDER BY e.id",
             (ticket_id,),
         ).fetchall()
+
+
+from .collaboration import install_collaboration
+
+install_collaboration(app)

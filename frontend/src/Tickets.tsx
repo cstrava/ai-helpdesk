@@ -1,3 +1,4 @@
+import TicketThread from "./TicketThread";
 import Dialog from "./Dialog";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -51,6 +52,8 @@ export default function Tickets({
   const [selected, setSelected] = useState<Ticket | null>(null);
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<Status>("open");
+  const [resolution, setResolution] = useState("");
+  const resolutionId = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [notice, setNotice] = useState("");
@@ -123,6 +126,8 @@ export default function Tickets({
     setCategory(ticket.final_category);
     setStatus(ticket.status);
     setSaveError("");
+    setResolution("");
+    resolutionId.current = null;
     setNotice("");
   }
   async function save(event: FormEvent) {
@@ -132,9 +137,18 @@ export default function Tickets({
     setSaving(true);
     setSaveError("");
     try {
+      const resolving = status === "resolved" && selected.status !== "resolved";
+      if (resolving) resolutionId.current ??= crypto.randomUUID();
       await request<Ticket>(`/tickets/${selected.id}`, "PATCH", {
         final_category: category,
         status,
+        expected_version: selected.version,
+        ...(resolving
+          ? {
+              resolution_message: resolution.trim(),
+              request_id: resolutionId.current,
+            }
+          : {}),
       });
       setSelected(null);
       setNotice("Modificările au fost salvate.");
@@ -380,11 +394,32 @@ export default function Tickets({
           <dl className="metadata">
             <dt>Creat</dt>
             <dd>{date(selected.created_at)}</dd>
-            <dt>Predicție originală</dt>
-            <dd>{selected.predicted_category}</dd>
-            <dt>Versiune model</dt>
-            <dd>{selected.model_version}</dd>
+            {support && (
+              <>
+                <dt>Predicție originală</dt>
+                <dd>{selected.predicted_category}</dd>
+                <dt>Versiune model</dt>
+                <dd>{selected.model_version}</dd>
+              </>
+            )}
           </dl>
+          <TicketThread
+            key={selected.id}
+            ticket={selected}
+            support={support}
+            onChanged={(updated) => {
+              setSelected(updated);
+              setCategory((current) =>
+                current === selected.final_category
+                  ? updated.final_category
+                  : current,
+              );
+              setStatus((current) =>
+                current === selected.status ? updated.status : current,
+              );
+              setReload((value) => value + 1);
+            }}
+          />
           <h3>Istoricul modificărilor</h3>
           {eventsLoading && <p role="status">Se încarcă istoricul…</p>}
           {eventsError && (
@@ -399,8 +434,13 @@ export default function Tickets({
             {events.map((event) => (
               <li key={event.id}>
                 {date(event.created_at)} · {event.actor} ·{" "}
-                {event.field === "status" ? "Status" : "Categorie"}:{" "}
-                {event.old_value} → {event.new_value}
+                {{
+                  status: "Status",
+                  final_category: "Categorie",
+                  assignee_id: "Responsabil",
+                  priority: "Prioritate",
+                }[event.field] ?? event.field}
+                : {event.old_value} → {event.new_value}
               </li>
             ))}
           </ul>
@@ -416,7 +456,6 @@ export default function Tickets({
                 <div>
                   <label htmlFor="edit-category">Categoria finală</label>
                   <select
-                    autoFocus
                     id="edit-category"
                     value={category}
                     disabled={saving}
@@ -437,14 +476,36 @@ export default function Tickets({
                       setStatus(event.target.value as Status)
                     }
                   >
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                      <option value={value} key={value}>
-                        {label}
-                      </option>
-                    ))}
+                    {Object.entries(statusLabels)
+                      .filter(
+                        ([value]) =>
+                          selected.status !== "resolved" ||
+                          value === "resolved",
+                      )
+                      .map(([value, label]) => (
+                        <option value={value} key={value}>
+                          {label}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
+              {status === "resolved" && selected.status !== "resolved" && (
+                <>
+                  <label htmlFor="resolution-message">Mesaj de rezolvare</label>
+                  <textarea
+                    id="resolution-message"
+                    required
+                    maxLength={4000}
+                    disabled={saving}
+                    value={resolution}
+                    onChange={(event) => {
+                      setResolution(event.target.value);
+                      resolutionId.current = null;
+                    }}
+                  />
+                </>
+              )}
               <p className="hint">
                 Corectarea categoriei păstrează predicția originală a modelului.
               </p>
@@ -466,6 +527,9 @@ export default function Tickets({
                   className="button primary"
                   disabled={
                     saving ||
+                    (status === "resolved" &&
+                      selected.status !== "resolved" &&
+                      !resolution.trim()) ||
                     (category === selected.final_category &&
                       status === selected.status)
                   }

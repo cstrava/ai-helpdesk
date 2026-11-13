@@ -91,7 +91,30 @@ test("login → conversation → editable draft → confirmation → ticket → 
   await page
     .getByLabel("Categoria finală", { exact: true })
     .selectOption("Hardware");
+  await page
+    .getByRole("button", { name: "Preia tichetul", exact: true })
+    .click();
+  await page
+    .getByLabel("Răspuns public", { exact: true })
+    .fill("Please retry signing in.");
+  await page
+    .getByRole("button", { name: "Trimite răspunsul", exact: true })
+    .click();
+  await expect(
+    page.getByText("Please retry signing in.", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("checkbox").check();
+  await page
+    .getByLabel("Notă internă", { exact: true })
+    .fill("Synthetic private diagnosis");
+  await page.getByRole("button", { name: "Adaugă nota", exact: true }).click();
+  await expect(
+    page.getByText("Synthetic private diagnosis", { exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Status", { exact: true }).selectOption("resolved");
+  await page
+    .getByLabel("Mesaj de rezolvare", { exact: true })
+    .fill("Your account has been unlocked.");
   await page.getByRole("button", { name: "Salvează modificările" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
@@ -107,6 +130,39 @@ test("login → conversation → editable draft → confirmation → ticket → 
     path: testInfo.outputPath("support-audit.png"),
     fullPage: true,
   });
+  await page
+    .getByRole("button", { name: "Închide detaliile", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Deconectare", exact: true })
+    .filter({ visible: true })
+    .click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page
+    .getByLabel("Parolă", { exact: true })
+    .fill("browser-test-password");
+  await page
+    .getByRole("button", { name: "Autentificare", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Tichete", exact: true }).click();
+  await page.getByRole("button", { name: title, exact: true }).click();
+  await expect(
+    page.getByText("Your account has been unlocked.", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Synthetic private diagnosis", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Răspuns public", { exact: true }).fill("I tried again and it is still blocked.");
+  await page.getByRole("button", { name: "Trimite răspunsul", exact: true }).click();
+  await expect(page.getByText("I tried again and it is still blocked.", { exact: true })).toBeVisible();
+  await page
+    .getByLabel("Motivul redeschiderii")
+    .fill("The account is locked again.");
+  await page
+    .getByRole("button", { name: "Redeschide tichetul", exact: true })
+    .click();
+  await expect(page.locator(".audit-list")).toContainText("resolved → open");
+  await expect(
+    page.getByText("The account is locked again.", { exact: true }),
+  ).toBeVisible();
 });
 
 test("restores unsaved work and recovers a committed ticket after a proxy error", async ({

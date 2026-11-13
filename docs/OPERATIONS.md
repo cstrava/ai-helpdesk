@@ -46,7 +46,7 @@ Compară schema, numărătorile, conținutul și secvențele cu sursa; restaurar
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
 ```
 
-Migrările sunt tranzacționale și serializate. Etapa 1 nu adaugă un fișier SQL nou: întărește adoptarea migrărilor legacy 001–003. O schemă parțială este respinsă fără înregistrări noi de migrare. Nu modifica SQL deja aplicat și nu șterge manual înregistrări din schema_migrations pentru a forța adoptarea.
+Migrările sunt tranzacționale și serializate. Etapa 1 întărește adoptarea migrărilor legacy 001–003. Etapa 2 adaugă `005_ticket_collaboration.sql`; trebuie aplicată înainte de pornirea noului cod. Păstrează datele existente, adaugă noile tabele/câmpuri și folosește numai auditul existent pentru datele istorice de rezolvare. O schemă parțială este respinsă fără înregistrări noi de migrare. Nu modifica SQL deja aplicat și nu șterge manual înregistrări din schema_migrations pentru a forța adoptarea.
 
 ## Teste separate de baza aplicației
 

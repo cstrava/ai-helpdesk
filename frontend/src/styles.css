@@ -1293,3 +1293,42 @@ tbody tr:hover {
     min-width: 0;
   }
 }
+
+.ticket-thread {
+  margin-block: 1.5rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--border, #dce4d4);
+}
+.ticket-thread form,
+.assignment-controls {
+  display: grid;
+  gap: 0.65rem;
+  margin-block: 1.2rem;
+}
+.ticket-messages {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.8rem;
+}
+.ticket-messages li {
+  padding: 1rem;
+  border: 1px solid #d8e1d2;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.ticket-messages .internal-note {
+  background: #fff1cf;
+  border-left: 4px solid #826415;
+}
+.ticket-messages small {
+  color: #40513e;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.checkbox-label input {
+  width: auto;
+}

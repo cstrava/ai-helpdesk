@@ -12,6 +12,7 @@ const ticket = {
   status: "open",
   created_at: "2026-11-05T10:00:00Z",
   conversation_id: "conversation-1",
+  version: 0,
 };
 const draft = {
   conversation_id: "conversation-1",
@@ -26,7 +27,9 @@ function mockApi(failMessage = false) {
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       let data: unknown;
-      if (path === "/api/auth/me")
+      if (path === "/api/support/agents" || path.includes("/messages?"))
+        data = [];
+      else if (path === "/api/auth/me")
         data = {
           id: "account-1",
           email: "support@example.test",
@@ -121,7 +124,7 @@ describe("Helpdesk frontend", () => {
       screen.queryByRole("button", { name: /Pregătește tichetul/ }),
     ).toBeNull();
   });
-  it("updates only final category and status", async () => {
+  it("updates final category and resolves with an explicit message", async () => {
     const fetchMock = mockApi(),
       user = userEvent.setup();
     render(<App />);
@@ -135,6 +138,10 @@ describe("Helpdesk frontend", () => {
       "Purchase",
     );
     await user.selectOptions(screen.getByLabelText("Status"), "resolved");
+    await user.type(
+      screen.getByLabelText("Mesaj de rezolvare"),
+      "Access restored.",
+    );
     await user.click(
       screen.getByRole("button", { name: "Salvează modificările" }),
     );
@@ -145,6 +152,9 @@ describe("Helpdesk frontend", () => {
     expect(JSON.parse(String(call[1]?.body))).toEqual({
       final_category: "Purchase",
       status: "resolved",
+      expected_version: 0,
+      resolution_message: "Access restored.",
+      request_id: expect.any(String),
     });
   });
   it("sends status filtering to the server", async () => {

@@ -1,6 +1,6 @@
 # AI Helpdesk
 
-Aplicație locală de portofoliu pentru suport IT în română și engleză. Utilizatorul discută cu un asistent, verifică o ciornă editabilă și confirmă explicit crearea tichetului. Suportul corectează categoria și urmărește rezolvarea.
+Aplicație locală de portofoliu pentru suport IT în română și engleză. Utilizatorul discută cu un asistent, verifică o ciornă editabilă și confirmă explicit crearea tichetului. Suportul preia tichetul, răspunde public sau adaugă note interne și rezolvă problema cu un mesaj explicit. Proprietarul sau suportul poate redeschide cu motiv.
 
 ## Arhitectură
 
@@ -71,6 +71,8 @@ docker compose stop
 Serviciile au `restart: unless-stopped`. API așteaptă PostgreSQL și Ollama sănătoase și aplică migrările înainte de încărcarea clasificatorului. Healthcheckul API verifică baza de date; încărcarea clasificatorului se face înainte ca API să accepte cereri. `ollama list` verifică serviciul, nu existența modelului Qwen: încărcarea lui este pas explicit. Un healthcheck eșuat nu repornește singur un container încă activ.
 
 ## Migrări și date existente
+
+Migrarea 005 este necesară pentru colaborare. Păstrează datele și ownerii existenți; adaugă prioritate normal, versiune 0 și responsabil neatribuit. Datele necunoscute nu sunt inventate. Fă backup și verifică restore înainte de upgrade, conform [ghidului de operare](docs/OPERATIONS.md).
 
 ```bash
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
@@ -152,6 +154,6 @@ Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](doc
 
 ## Livrarea în curs
 
-Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Colaborarea publică pe tichet, notele interne, atribuirea, redeschiderea, dashboardul, notificările și feedbackul ML sunt etape planificate, încă neimplementate. Proiectul nu este declarat complet.
+Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Etapa 2 adaugă răspunsuri publice, note interne support-only, preluare/atribuire, rezolvare cu mesaj și redeschidere cu motiv, protejate prin versiuni și tranzacții. Prioritatea este afișată cu default normal; editarea ei, impactul declarat, dashboardul, notificările și feedbackul ML sunt încă planificate. Proiectul nu este declarat complet.
 
 Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).
