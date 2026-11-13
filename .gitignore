@@ -33,3 +33,5 @@ Thumbs.db
 # Browser verification
 frontend/test-results/
 frontend/playwright-report/
+
+*:Zone.Identifier
