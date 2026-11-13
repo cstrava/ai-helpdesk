@@ -30,7 +30,7 @@ Pornește aplicația conform README. Creează două conturi user din interfață
 
 Verifică desktop și telefon, Tab/Shift+Tab în dialoguri, Escape, focus vizibil, liste goale, încărcare, erori și logout. Testele automate de browser sunt separate de această verificare cu modele reale.
 
-## Recuperare și verificare — etapa 1 (5–10 minute)
+## Demonstrația completă — 5–10 minute
 
 Acest scenariu demonstrează etapele 1–4. Pentru review/export, folosește exclusiv date sintetice; nu transforma baza personală în fixture și nu distribui CSV-ul.
 

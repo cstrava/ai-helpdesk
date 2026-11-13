@@ -45,13 +45,14 @@ select {
 }
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid #68ad90;
-  outline-offset: 4px;
+  outline: 3px solid #2b684c;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px #fff;
 }
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid #8bbda7;
+  outline: 2px solid #2b684c;
   outline-offset: 2px;
 }
 button {
@@ -206,12 +207,12 @@ svg {
   justify-content: space-between;
   padding: 0 42px;
   font-size: 11px;
-  color: #6a8076;
+  color: #526359;
   background: #fbfcfb;
 }
 .slash {
   padding: 0 14px;
-  color: #b3beb8;
+  color: #617168;
 }
 .local-label {
   background: #eef3ed;
@@ -239,7 +240,7 @@ svg {
 .eyebrow {
   font-size: 10px;
   letter-spacing: 1.6px;
-  color: #58826a;
+  color: #3e704e;
   font-weight: 750;
   margin-bottom: 13px;
   text-transform: uppercase;
@@ -253,12 +254,12 @@ h1 {
 }
 h1 span {
   display: block;
-  color: #628272;
+  color: #496f5c;
   font-weight: 450;
 }
 .lead {
   font-size: 12px;
-  color: #78887f;
+  color: #596b60;
   margin-bottom: 0;
   line-height: 1.8;
 }
@@ -302,7 +303,7 @@ h1 span {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #89978e;
+  color: #56695f;
   font-size: 11px;
   font-weight: 550;
 }
@@ -354,7 +355,7 @@ h1 span {
 }
 .card-heading p {
   font-size: 10px;
-  color: #839186;
+  color: #54655a;
   margin: 0;
 }
 .assistant-mark {
@@ -382,7 +383,7 @@ h1 span {
 }
 .badge.subtle {
   background: #f2f5f1;
-  color: #657a6b;
+  color: #53665a;
   border: 1px solid #e6ece4;
 }
 .message-log {
@@ -418,7 +419,7 @@ h1 span {
 }
 .empty-chat p {
   font-size: 11px;
-  color: #8a968c;
+  color: #55665a;
   line-height: 1.9;
 }
 .suggestions {
@@ -453,7 +454,7 @@ h1 span {
 .message small {
   font-size: 9px;
   letter-spacing: 1px;
-  color: #74917e;
+  color: #536e5b;
   font-weight: 700;
 }
 .message p {
@@ -478,7 +479,7 @@ h1 span {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #6a8974;
+  color: #4f6f5a;
   font-size: 12px;
   margin: 0;
   flex-shrink: 0;
@@ -540,7 +541,7 @@ select {
 }
 .composer-bottom small {
   font-size: 9px;
-  color: #8a988e;
+  color: #53665a;
 }
 .guide {
   padding: 17px 0;
@@ -556,7 +557,7 @@ select {
 }
 .guide > p:not(.eyebrow) {
   font-size: 11px;
-  color: #819081;
+  color: #536454;
 }
 .guide ul {
   padding: 0;
@@ -571,7 +572,7 @@ select {
 }
 .guide li > span {
   font-size: 10px;
-  color: #99ac91;
+  color: #5e7556;
   padding-top: 2px;
 }
 .guide strong {
@@ -579,7 +580,7 @@ select {
 }
 .guide li p {
   font-size: 10px;
-  color: #8a9789;
+  color: #536455;
   margin: 5px 0 0;
 }
 .privacy-note {
@@ -588,7 +589,7 @@ select {
   gap: 9px;
   border-top: 1px solid #e3e9df;
   padding-top: 20px;
-  color: #83947c;
+  color: #52684d;
 }
 .privacy-note p {
   font-size: 10px;
@@ -645,7 +646,7 @@ select {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #628361;
+  color: #52684d;
   margin-bottom: 15px;
 }
 .draft-form label {
@@ -653,7 +654,7 @@ select {
 }
 .muted,
 .draft-form > p {
-  color: #81907e;
+  color: #526453;
   font-size: 12px;
 }
 .category-line {
@@ -663,11 +664,11 @@ select {
   flex-wrap: wrap;
   margin-top: 20px;
   font-size: 11px;
-  color: #74856f;
+  color: #516849;
 }
 .hint {
   font-size: 10px;
-  color: #899585;
+  color: #56644f;
   line-height: 1.7;
 }
 .actions {
@@ -713,7 +714,7 @@ footer {
   padding: 15px 42px 25px;
   font-size: 9px;
   letter-spacing: 1.8px;
-  color: #a0afa0;
+  color: #5c6d5f;
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -736,7 +737,7 @@ footer span {
 }
 .ticket-intro p {
   font-size: 10px;
-  color: #78906e;
+  color: #506647;
   margin: 5px 0 0;
 }
 .ticket-intro > .badge {
@@ -773,7 +774,7 @@ footer span {
   border: 1px solid #dce5dc;
   padding-left: 10px;
   border-radius: 8px;
-  color: #849680;
+  color: #52674c;
 }
 .search-field input {
   border: 0;
@@ -794,7 +795,7 @@ table {
 }
 thead {
   background: #f8faf6;
-  color: #8b9a82;
+  color: #52654a;
 }
 th {
   font-size: 9px;
@@ -833,14 +834,14 @@ tbody tr:hover {
 .ticket-id {
   display: block;
   margin-top: 5px;
-  color: #94a18b;
+  color: #52654a;
   font:
     9px ui-monospace,
     monospace;
 }
 .date-cell {
   font-size: 10px;
-  color: #87977c;
+  color: #526547;
   white-space: nowrap;
 }
 .status {
@@ -857,13 +858,13 @@ tbody tr:hover {
   background: currentColor;
 }
 .status.open {
-  color: #a17a35;
+  color: #745117;
 }
 .status.in_progress {
-  color: #5475a1;
+  color: #3f5d85;
 }
 .status.resolved {
-  color: #558755;
+  color: #3b6b3c;
 }
 .icon-button {
   display: grid;
@@ -872,12 +873,12 @@ tbody tr:hover {
   border: 1px solid #e0e8db;
   border-radius: 7px;
   background: white;
-  color: #78916c;
+  color: #52654a;
 }
 .list-empty {
   padding: 65px 25px;
   text-align: center;
-  color: #809477;
+  color: #52694d;
 }
 .list-empty > svg {
   margin-bottom: 10px;
@@ -897,7 +898,7 @@ tbody tr:hover {
 }
 .pagination > span {
   font-size: 11px;
-  color: #8b9981;
+  color: #52654a;
 }
 .pagination > div {
   display: flex;
@@ -942,7 +943,7 @@ tbody tr:hover {
 }
 .modal > p {
   font-size: 12px;
-  color: #7d8f73;
+  color: #526744;
 }
 .modal .close {
   position: absolute;
@@ -971,7 +972,7 @@ tbody tr:hover {
   border-bottom: 1px solid #e5ecdf;
 }
 .metadata dt {
-  color: #8c9b81;
+  color: #526748;
 }
 .metadata dd {
   margin: 0;

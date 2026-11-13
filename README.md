@@ -72,7 +72,7 @@ Serviciile au `restart: unless-stopped`. API așteaptă PostgreSQL și Ollama s�
 
 ## Migrări și date existente
 
-Migrarea 005 este necesară pentru colaborare. Păstrează datele și ownerii existenți; adaugă prioritate normal, versiune 0 și responsabil neatribuit. Datele necunoscute nu sunt inventate. Fă backup și verifică restore înainte de upgrade, conform [ghidului de operare](docs/OPERATIONS.md).
+Migrările 005–007 sunt necesare pentru funcțiile noi: 005 colaborarea și istoricul tichetului, 006 impactul/prioritatea/dashboardul/notificările, 007 revizuirea explicită a categoriei pentru evaluare ML. Păstrează datele și ownerii existenți; prioritatea tichetelor vechi devine normal, iar datele istorice necunoscute nu sunt inventate. Fă backup și verifică restore înainte de upgrade, conform [ghidului de operare](docs/OPERATIONS.md).
 
 ```bash
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
@@ -165,6 +165,6 @@ Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](doc
 
 ## Livrarea în curs
 
-Etapele 1–3 sunt publicate în branchuri tematice și CI pentru etapa 3 a trecut. Etapa 4 adaugă acum revizuire ML explicită, export support-only minim și un script de evaluare reproductibilă pentru modelele disponibile; nu reantrenează și nu schimbă modelul activ. Etapa 5 de integrare finală rămâne.
+Etapele 1–5 sunt implementate pe branchuri tematice, iar CI a trecut pentru fiecare PR din lanț. Etapa 4 adaugă revizuire ML explicită, export support-only minim și evaluare reproductibilă pentru artefactele locale disponibile; nu reantrenează și nu schimbă modelul activ. Etapa 5 a verificat local integrarea prin Nginx, migrarea de la zero, restartul și fluxuri RO/EN reale într-un stack temporar izolat; verificările browser includ focusul tastaturii și un control țintit al contrastului. Detaliile și limitele sunt în [planul de implementare](docs/IMPLEMENTATION_PLAN.md). PR-urile sunt în lanț și nu au fost integrate în branchul implicit.
 
 Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).
