@@ -55,6 +55,7 @@ class TicketResponse(BaseModel):
     version: int = 0
     updated_at: datetime | None = None
     first_resolved_at: datetime | None = None
+    impact: Literal["individual", "team", "organization"] | None = None
 
 
 Category = Literal[
@@ -76,6 +77,7 @@ class TicketUpdate(BaseModel):
 
     final_category: Category | None = None
     status: TicketStatus | None = None
+    priority: Literal["low", "normal", "high", "urgent"] | None = None
     expected_version: Annotated[int, Field(strict=True, ge=0)] | None = None
     resolution_message: (
         Annotated[
@@ -87,7 +89,9 @@ class TicketUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_update(self):
-        if not self.model_fields_set.intersection({"final_category", "status"}):
+        if not self.model_fields_set.intersection(
+            {"final_category", "status", "priority"}
+        ):
             raise ValueError("Trimite cel puțin un câmp de actualizat.")
 
         for field in self.model_fields_set:
@@ -204,7 +208,14 @@ def list_tickets(
     status: TicketStatus | None = None,
     category: Category | None = None,
     search: Annotated[str, Query(max_length=200)] = "",
+    priority: Literal["low", "normal", "high", "urgent"] | None = None,
+    assigned_to_me: bool = False,
+    unassigned: bool = False,
 ) -> list[TicketResponse]:
+    if (assigned_to_me or unassigned) and user["role"] != "support":
+        raise HTTPException(403, "Filtrul de atribuire este rezervat suportului.")
+    if assigned_to_me and unassigned:
+        raise HTTPException(422, "Alege un singur filtru de atribuire.")
     try:
         with connect_db() as connection:
             rows = connection.execute(
@@ -219,11 +230,15 @@ def list_tickets(
                     model_version,
                     status,
                     created_at, assignee_id, priority, version, updated_at, first_resolved_at,
+                    impact,
                     (SELECT email FROM users WHERE users.id=tickets.assignee_id) AS assignee_email
                 FROM tickets
                 WHERE (%s::text IS NULL OR status = %s)
                   AND (%s = 'support' OR owner_id = %s)
                   AND (%s::text IS NULL OR final_category = %s)
+                  AND (%s::text IS NULL OR priority = %s)
+                  AND (NOT %s OR assignee_id = %s)
+                  AND (NOT %s OR assignee_id IS NULL)
                   AND (%s = '' OR strpos(lower(coalesce(title,'') || ' ' || text || ' ' || id::text), lower(%s)) > 0)
                 ORDER BY created_at DESC, id DESC
                 LIMIT %s OFFSET %s
@@ -235,6 +250,11 @@ def list_tickets(
                     user["id"],
                     category,
                     category,
+                    priority,
+                    priority,
+                    assigned_to_me,
+                    user["id"],
+                    unassigned,
                     search,
                     search,
                     limit,
@@ -713,6 +733,7 @@ def prepare_ticket_draft(
 class TicketConfirmation(TicketDraftContent):
     last_message_id: Annotated[int, Field(strict=True, gt=0)]
     confirmed: Annotated[bool, Field(strict=True)]
+    impact: Literal["individual", "team", "organization"] | None = None
 
     @model_validator(mode="after")
     def require_confirmation(self):
@@ -801,9 +822,10 @@ def create_ticket_from_conversation(
                     predicted_category,
                     final_category,
                     model_version,
-                    owner_id
+                    owner_id,
+                    impact
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING
                     id,
                     title,
@@ -813,7 +835,7 @@ def create_ticket_from_conversation(
                     final_category,
                     model_version,
                     status,
-                    created_at, assignee_id, priority, version, updated_at, first_resolved_at
+                    created_at, assignee_id, priority, version, updated_at, first_resolved_at, impact
                 """,
                 (
                     confirmation.title,
@@ -823,6 +845,7 @@ def create_ticket_from_conversation(
                     prediction.category,
                     prediction.model_version,
                     user["id"],
+                    confirmation.impact,
                 ),
             ).fetchone()
 

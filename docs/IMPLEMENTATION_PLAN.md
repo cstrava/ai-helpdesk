@@ -23,7 +23,7 @@ Bază verificată: branch implicit `feature/data-pipeline`, commit `8474796`, wo
 |---|---|---|
 | 1 Stabilitate | Instalare curată, typecheck inclusiv Node, lint/test/build; recuperare confirmare după răspuns pierdut fără duplicate; sessionStorage per cont/conversație cu ștergere la logout; respingere explicită a schemelor legacy parțiale și păstrarea datelor | Implementată pe `fix/application-reliability`; verificări locale trecute; [CI push reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43454447275), [PR #1](https://github.com/cstrava/ai-helpdesk/pull/1) |
 | 2 Colaborare | Fir public separat de AI, note interne invizibile userilor, mesaje idempotente, atribuiri concurente protejate, rezolvare cu mesaj și redeschidere cu motiv; API/UI și teste de izolare | Implementată pe `feat/ticket-collaboration`, bază PR #1; verificări locale și reale trecute, CI nou în așteptare |
-| 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Neîncepută |
+| 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Implementată pe `feat/support-workspace`; 56 backend, 23 frontend și 4 Playwright desktop/mobil trecute, lint/typecheck/build trecute. CI remote pentru acest branch încă neexecutat |
 | 4 Feedback ML | Revizuire explicită invalidabilă, export minimal support-only, evaluare reproductibilă cu proveniență și metrici RO/EN separate; fără reantrenare sau înlocuirea modelului | Neîncepută |
 | 5 Integrare și documentație | E2E desktop/mobil pentru flux complet, migrare de la zero și upgrade, restart/Nginx, RO/EN real în mediu izolat, instrucțiuni backup/restore/demo și CI final | Neîncepută |
 
@@ -105,8 +105,15 @@ La 9 noiembrie, CI era configurat, dar nu exista o execuție remote. La 13 noiem
 
 Etapele 1–2 nu înseamnă finalizarea întregului proiect. Rămân:
 
-1. Etapa 3: filtre atribuite mie/neatribuite și prioritate, impact opțional declarat de user, editare/audit prioritate, dashboard cu formule și interval, notificări persistente cu polling și linkuri. Aceste funcții nu au încă endpointuri sau UI.
+1. Etapa 3: funcțiile sunt implementate local: filtre atribuite mie/neatribuite/prioritate; impact opțional declarat de user; prioritate editabilă și auditată; dashboard pe intervalul cerut; notificări persistente cu polling, marcate ca citite și deschidere tichet. Rămân de verificat E2E prin integrarea Nginx și CI remote pentru branch.
 2. Etapa 4: revizuire ML explicită invalidabilă, export support-only minimal, evaluare reproductibilă v1/v2/baseline cu metrici separate și raportarea regresiei pe validarea originală. Nu s-au reantrenat sau înlocuit modele.
 3. Etapa 5: verificare integrată a funcțiilor viitoare, demo final complet, audit mai larg de accesibilitate/contrast și documentație finală actualizată.
+
+### Verificări etapa 3 — 2026-11-13
+
+- Migrarea 006 și toate migrările 001–006 au rulat în schema izolată a suitei; backend 56/56 trecut. Testele noi verifică impact opțional/user-declarat, prioritate doar support, filtre combinate și permisiuni, audit, dashboard descriptiv și notificări (fără notificare pentru notă internă, fără notificarea actorului și citire).
+- Frontend: 23/23 teste, lint (inclusiv typecheck), typecheck explicit și build de producție trecute.
+- Playwright: 4/4 în Chromium desktop și Pixel 7 emulat pentru fluxurile existente de confirmare/recuperare. Inference mock; nu este E2E pentru dashboard/notificări.
+- Nu am testat încă integrarea cu Nginx pentru noua versiune și nu există încă rezultat Actions pentru branchul etapei 3. Baza și serviciile personale nu au fost folosite ca fixture.
 
 Următoarea bază tehnică este `feat/ticket-collaboration`; PR-ul ei depinde de PR #1. Nu s-a făcut merge în branchul implicit. Baza personală și containerele aplicației existente nu au fost actualizate; înainte de pornirea noii versiuni este necesar backup verificat și migrarea 005.

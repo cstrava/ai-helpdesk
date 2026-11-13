@@ -37,6 +37,14 @@ function mockApi(failMessage = false) {
           csrf_token: "csrf-test",
         };
       else if (path === "/api/auth/logout") data = {};
+      else if (path === "/api/notifications/unread-count") data = { count: 0 };
+      else if (path.startsWith("/api/notifications?")) data = [];
+      else if (path === "/api/support/dashboard?days=30") data = {
+        days: 30, status_counts: [{ status: "open", count: 1 }], unassigned_count: 1,
+        category_counts: [{ category: "Access", count: 1 }], priority_counts: [{ priority: "normal", count: 1 }],
+        avg_first_reply_seconds: null, without_public_support_reply: 1,
+        avg_first_resolution_seconds: null, without_first_resolution_event: 1,
+      };
       else if (path.startsWith("/api/conversations?")) data = [];
       else if (path.endsWith("/events")) data = [];
       else if (path === "/api/conversations") data = { id: "conversation-1" };
@@ -105,6 +113,7 @@ describe("Helpdesk frontend", () => {
       description: draft.description,
       last_message_id: 2,
       confirmed: true,
+      impact: null,
     });
     expect(screen.queryByLabelText("Mesajul tău")).toBeNull();
     expect(sessionStorage.getItem("helpdesk-unsaved:account-1:new")).toBeNull();
@@ -153,6 +162,7 @@ describe("Helpdesk frontend", () => {
       final_category: "Purchase",
       status: "resolved",
       expected_version: 0,
+      priority: "normal",
       resolution_message: "Access restored.",
       request_id: expect.any(String),
     });
@@ -174,6 +184,16 @@ describe("Helpdesk frontend", () => {
         ),
       ).toBe(true),
     );
+  });
+  it("shows the support summary and combines assignment and priority filters", async () => {
+    const fetchMock = mockApi(), user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText("Mesajul tău");
+    await user.click(screen.getByRole("button", { name: "Tichete" }));
+    expect(await screen.findByText("Rezumat · ultimele 30 zile")).toBeTruthy();
+    await user.selectOptions(screen.getByLabelText("Filtrează după atribuire"), "mine");
+    await user.selectOptions(screen.getByLabelText("Filtrează după prioritate"), "urgent");
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => String(url).includes("assigned_to_me=true") && String(url).includes("priority=urgent"))).toBe(true));
   });
   it("keeps the current conversation when cancelling a reset", async () => {
     mockApi();

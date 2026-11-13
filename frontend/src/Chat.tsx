@@ -40,6 +40,7 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
   );
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [impact, setImpact] = useState<"individual" | "team" | "organization" | "">("");
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [resetDialog, setResetDialog] = useState(false);
   const [confirmationBlocked, setConfirmationBlocked] = useState(false);
@@ -148,6 +149,7 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
     setMessages([]);
     setText("");
     setDraft(null);
+    setImpact("");
     setTicket(null);
     setError("");
     setConfirmationBlocked(false);
@@ -263,6 +265,7 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
           description: draft.description.trim(),
           last_message_id: draft.last_message_id,
           confirmed: true,
+          impact: impact || null,
         },
       );
       acceptTicket(result);
@@ -543,6 +546,13 @@ export default function Chat({ accountId, onCreated, onViewTickets }: Props) {
               <p className="hint">
                 Categoria se recalculează la confirmare, folosind textul editat.
               </p>
+              <label htmlFor="ticket-impact">Impact (opțional)</label>
+              <select id="ticket-impact" value={impact} disabled={!!busy} onChange={(event) => setImpact(event.target.value as typeof impact)}>
+                <option value="">Nespecificat</option>
+                <option value="individual">Doar eu</option>
+                <option value="team">Echipa mea</option>
+                <option value="organization">Organizația</option>
+              </select>
               <div className="actions">
                 <button
                   type="button"

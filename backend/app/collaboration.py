@@ -1,7 +1,7 @@
 """Ticket collaboration with row locks, optimistic updates and idempotent messages."""
 
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from .auth import current_user
@@ -101,15 +101,42 @@ def insert_message(db, ticket_id, user, content, visibility, kind, request_id):
     ).fetchone()["id"]
 
 
+def notify(db, recipient_id, ticket_id, kind, source_key):
+    if recipient_id is not None:
+        db.execute(
+            "INSERT INTO notifications(recipient_id,ticket_id,kind,source_key) VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+            (recipient_id, ticket_id, kind, source_key),
+        )
+
+
+def response_recipients(db, ticket, user):
+    recipients = {ticket["owner_id"], ticket["assignee_id"]} - {user["id"], None}
+    if ticket["assignee_id"] is None and user["role"] != "support":
+        recipients.update(
+            row["id"]
+            for row in db.execute("SELECT id FROM users WHERE role='support'").fetchall()
+        )
+        recipients.discard(user["id"])
+    return recipients
+
+
 def update_ticket(db, ticket_id, update, user):
     require_support(user)
     row = ticket_row(db, ticket_id, user, True)
-    if update.resolution_message is not None and update.status != "resolved":
+    if (
+        update.resolution_message is not None or update.request_id is not None
+    ) and update.status != "resolved":
         raise HTTPException(
             422, "Mesajul de rezolvare este permis numai pentru resolved."
         )
     if update.expected_version is not None:
         check_version(row, update.expected_version)
+    if (
+        update.priority is not None
+        and update.priority != row["priority"]
+        and update.expected_version is None
+    ):
+        raise HTTPException(422, "Schimbarea priorității cere expected_version.")
     if update.status is not None and update.status != row["status"]:
         if update.expected_version is None:
             raise HTTPException(422, "Schimbarea statusului cere expected_version.")
@@ -131,31 +158,51 @@ def update_ticket(db, ticket_id, update, user):
                 "public",
                 "resolution",
             )
-            if not existing:
-                insert_message(
-                    db,
-                    ticket_id,
-                    user,
-                    update.resolution_message,
-                    "public",
-                    "resolution",
-                    update.request_id,
+            if existing:
+                raise HTTPException(
+                    409,
+                    "Această cerere de rezolvare a fost deja procesată. Reîncarcă tichetul.",
                 )
+            insert_message(
+                db,
+                ticket_id,
+                user,
+                update.resolution_message,
+                "public",
+                "resolution",
+                update.request_id,
+            )
     elif update.resolution_message is not None or update.request_id is not None:
         raise HTTPException(
             422, "Mesajul de rezolvare este permis numai la tranziția în resolved."
         )
     changed = False
-    for field in ("final_category", "status"):
+    for field in ("final_category", "status", "priority"):
         value = getattr(update, field)
         if value is not None and row[field] != value:
             event(db, ticket_id, user, field, row[field], value)
             changed = True
     if changed:
         db.execute(
-            "UPDATE tickets SET final_category=coalesce(%s,final_category),status=coalesce(%s,status),version=version+1,updated_at=now(),first_resolved_at=CASE WHEN %s='resolved' THEN coalesce(first_resolved_at,now()) ELSE first_resolved_at END WHERE id=%s",
-            (update.final_category, update.status, update.status, ticket_id),
+            "UPDATE tickets SET final_category=coalesce(%s,final_category),status=coalesce(%s,status),priority=coalesce(%s,priority),version=version+1,updated_at=now(),first_resolved_at=CASE WHEN %s='resolved' THEN coalesce(first_resolved_at,now()) ELSE first_resolved_at END WHERE id=%s",
+            (
+                update.final_category,
+                update.status,
+                update.priority,
+                update.status,
+                ticket_id,
+            ),
         )
+        if update.status is not None and update.status != row["status"]:
+            notify(
+                db,
+                row["owner_id"],
+                ticket_id,
+                "status",
+                update.request_id or uuid4(),
+            )
+        if update.status == "resolved" and update.request_id:
+            notify(db, row["owner_id"], ticket_id, "reply", update.request_id)
     return ticket_row(db, ticket_id, user)
 
 
@@ -204,7 +251,7 @@ def install_collaboration(app):
         if body.visibility == "internal":
             require_support(user)
         with main.connect_db() as db:
-            ticket_row(db, ticket_id, user, True)
+            ticket = ticket_row(db, ticket_id, user, True)
             previous = existing_message(
                 db,
                 ticket_id,
@@ -227,6 +274,9 @@ def install_collaboration(app):
                     body.request_id,
                 )
             )
+            if body.visibility == "public" and previous is None:
+                for recipient in response_recipients(db, ticket, user):
+                    notify(db, recipient, ticket_id, "reply", body.request_id)
             # Ordinary replies never change status, assignment or the public audit.
             return message_result(db, mid)
 
@@ -254,6 +304,8 @@ def install_collaboration(app):
                 "UPDATE tickets SET assignee_id=%s,version=version+1,updated_at=now() WHERE id=%s",
                 (target, ticket_id),
             )
+            for recipient in {row["owner_id"], target} - {user["id"], None}:
+                notify(db, recipient, ticket_id, "assignment", uuid4())
         return main.TicketResponse.model_validate(ticket_row(db, ticket_id, user))
 
     @app.put("/tickets/{ticket_id}/assignment", response_model=main.TicketResponse)
@@ -286,4 +338,104 @@ def install_collaboration(app):
                 "UPDATE tickets SET status='open',version=version+1,updated_at=now() WHERE id=%s",
                 (ticket_id,),
             )
+            for recipient in response_recipients(db, row, user):
+                notify(db, recipient, ticket_id, "reply", body.request_id)
+                notify(db, recipient, ticket_id, "status", body.request_id)
             return main.TicketResponse.model_validate(ticket_row(db, ticket_id, user))
+
+    @app.get("/notifications")
+    def notifications(
+        user=Depends(current_user),
+        limit: Annotated[int, Query(ge=1, le=50)] = 20,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ):
+        with main.connect_db() as db:
+            return db.execute(
+                """SELECT n.id,n.ticket_id,n.kind,n.created_at,n.read_at,t.title
+                FROM notifications n JOIN tickets t ON t.id=n.ticket_id
+                WHERE n.recipient_id=%s AND (%s='support' OR t.owner_id=%s)
+                ORDER BY n.created_at DESC,n.id DESC LIMIT %s OFFSET %s""",
+                (user["id"], user["role"], user["id"], limit, offset),
+            ).fetchall()
+
+    @app.get("/notifications/unread-count")
+    def unread_count(user=Depends(current_user)):
+        with main.connect_db() as db:
+            return db.execute(
+                """SELECT count(*) AS count FROM notifications n
+                JOIN tickets t ON t.id=n.ticket_id
+                WHERE n.recipient_id=%s AND n.read_at IS NULL
+                  AND (%s='support' OR t.owner_id=%s)""",
+                (user["id"], user["role"], user["id"]),
+            ).fetchone()
+
+    @app.patch("/notifications/{notification_id}/read")
+    def mark_notification_read(notification_id: UUID, user=Depends(current_user)):
+        with main.connect_db() as db:
+            row = db.execute(
+                """UPDATE notifications n SET read_at=coalesce(read_at,now())
+                FROM tickets t WHERE n.id=%s AND n.recipient_id=%s
+                  AND t.id=n.ticket_id AND (%s='support' OR t.owner_id=%s)
+                RETURNING n.id,n.ticket_id,n.kind,n.created_at,n.read_at,t.title""",
+                (notification_id, user["id"], user["role"], user["id"]),
+            ).fetchone()
+            if row is None:
+                raise HTTPException(404, "Notificarea nu există.")
+            return row
+
+    @app.get("/support/dashboard")
+    def support_dashboard(
+        days: Annotated[int, Query(ge=1, le=365)] = 30,
+        user=Depends(current_user),
+    ):
+        require_support(user)
+        with main.connect_db() as db:
+            period = "created_at >= now() - (%s * interval '1 day') AND created_at <= now()"
+            counts = db.execute(
+                f"SELECT status,count(*) AS count FROM tickets WHERE {period} GROUP BY status",
+                (days,),
+            ).fetchall()
+            unassigned = db.execute(
+                f"SELECT count(*) AS count FROM tickets WHERE assignee_id IS NULL AND {period}",
+                (days,),
+            ).fetchone()["count"]
+            categories = db.execute(
+                f"SELECT final_category AS category,count(*) AS count FROM tickets WHERE {period} GROUP BY final_category ORDER BY final_category",
+                (days,),
+            ).fetchall()
+            priorities = db.execute(
+                f"SELECT priority,count(*) AS count FROM tickets WHERE {period} GROUP BY priority ORDER BY priority",
+                (days,),
+            ).fetchall()
+            metrics = db.execute(
+                """WITH scoped AS (
+                    SELECT t.id,t.created_at,t.first_resolved_at FROM tickets t
+                    WHERE t.created_at >= now() - (%s * interval '1 day')
+                      AND t.created_at <= now()
+                ), first_reply AS (
+                    SELECT m.ticket_id,min(m.created_at) AS at
+                    FROM ticket_messages m JOIN users u ON u.id=m.author_id
+                    WHERE m.visibility='public' AND m.kind IN ('reply','resolution')
+                      AND u.role='support' GROUP BY m.ticket_id
+                )
+                SELECT
+                    avg(extract(epoch FROM (r.at-s.created_at)))
+                      FILTER (WHERE r.at IS NOT NULL) AS avg_first_reply_seconds,
+                    count(*) FILTER (WHERE r.at IS NULL)
+                      AS without_public_support_reply,
+                    avg(extract(epoch FROM (s.first_resolved_at-s.created_at)))
+                      FILTER (WHERE s.first_resolved_at IS NOT NULL)
+                      AS avg_first_resolution_seconds,
+                    count(*) FILTER (WHERE s.first_resolved_at IS NULL)
+                      AS without_first_resolution_event
+                FROM scoped s LEFT JOIN first_reply r ON r.ticket_id=s.id""",
+                (days,),
+            ).fetchone()
+        return {
+            "days": days,
+            "status_counts": counts,
+            "unassigned_count": unassigned,
+            "category_counts": categories,
+            "priority_counts": priorities,
+            **metrics,
+        }

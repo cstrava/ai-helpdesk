@@ -47,6 +47,7 @@ export type Ticket = {
   version: number;
   updated_at: string | null;
   first_resolved_at: string | null;
+  impact?: "individual" | "team" | "organization" | null;
 };
 export class ApiError extends Error {
   status: number;
