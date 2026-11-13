@@ -41,6 +41,12 @@ export type Ticket = {
   status: Status;
   created_at: string;
   conversation_id: string | null;
+  assignee_id: string | null;
+  assignee_email: string | null;
+  priority: "low" | "normal" | "high" | "urgent";
+  version: number;
+  updated_at: string | null;
+  first_resolved_at: string | null;
 };
 export class ApiError extends Error {
   status: number;
