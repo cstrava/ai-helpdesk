@@ -54,27 +54,33 @@ export async function request<T>(
   method = "GET",
   body?: unknown,
 ): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 150_000);
   let response: Response;
+  let data: unknown;
   try {
     response = await fetch(`/api${path}`, {
       method,
+      signal: controller.signal,
       headers: {
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+    data = await response.json().catch(() => null);
   } catch {
     throw new ApiError(
       "Conexiunea cu serverul a fost întreruptă. Verifică serviciile Docker.",
       0,
     );
+  } finally {
+    clearTimeout(timer);
   }
-  const data = await response.json().catch(() => null);
   if (!response.ok) {
     if (response.status === 401 && !path.startsWith("/auth/"))
       window.dispatchEvent(new Event("session-expired"));
-    const detail = data?.detail;
+    const detail = (data as { detail?: unknown } | null)?.detail;
     const message =
       typeof detail === "string"
         ? detail
@@ -91,3 +97,19 @@ export async function request<T>(
 }
 export const errorText = (error: unknown) =>
   error instanceof Error ? error.message : "A apărut o eroare neașteptată.";
+
+export function isTicket(value: unknown): value is Ticket {
+  if (!value || typeof value !== "object") return false;
+  const t = value as Ticket;
+  return (
+    typeof t.id === "string" &&
+    typeof t.text === "string" &&
+    (t.title === null || typeof t.title === "string") &&
+    typeof t.conversation_id === "string" &&
+    typeof t.created_at === "string" &&
+    typeof t.predicted_category === "string" &&
+    typeof t.final_category === "string" &&
+    typeof t.model_version === "string" &&
+    ["open", "in_progress", "resolved"].includes(t.status)
+  );
+}

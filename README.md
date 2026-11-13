@@ -76,7 +76,7 @@ Serviciile au `restart: unless-stopped`. API așteaptă PostgreSQL și Ollama s�
 docker compose run --rm --no-deps api python -m backend.app.manage migrate
 ```
 
-Runnerul păstrează `schema_migrations`, execută în ordine fișierele din `backend/migrations` și folosește o blocare tranzacțională pentru porniri concurente. Adoptă migrările originale 001–003 aplicate manual, verificând tabelele/coloanele așteptate. Schema originală trebuie să fie completă; pentru o schemă modificată manual, verifică înainte compatibilitatea. Nu edita migrări deja aplicate; adaugă un fișier nou.
+Runnerul păstrează `schema_migrations`, execută în ordine fișierele din `backend/migrations` și folosește o blocare tranzacțională pentru porniri concurente. Adoptă migrările originale 001–003 aplicate manual numai după compararea coloanelor (tip, nullabilitate, identity, default), constrângerilor și indexurilor cu o schemă de referință creată tranzacțional din SQL-ul original. O schemă parțială sau incompatibilă oprește migrarea cu un mesaj explicit și rollback. Runnerul necesită dreptul de a crea o schemă de referință temporară în baza țintă; nu introduce date în aceasta. Migrările deja înregistrate nu sunt revalidate automat. Nu edita migrări deja aplicate; adaugă un fișier nou.
 
 Migrarea 004 adaugă proprietarii fără a atribui datele vechi unui cont. Utilizatorii obișnuiți nu văd conversațiile sau tichetele fără proprietar. Suportul poate administra toate tichetele, inclusiv cele istorice; conversațiile fără proprietar nu sunt expuse în interfață. O eventuală atribuire ulterioară cere o decizie explicită și o migrare separată.
 
@@ -99,7 +99,9 @@ Nu se șterg volume, date sau modele. Înaintea actualizării unei baze importan
 6. `GET /tickets/{id}`, `PATCH /tickets/{id}` (support), `GET /tickets/{id}/events`. Auditul tranzacțional păstrează actorul, momentul și valorile vechi/noi; salvările fără schimbare nu creează evenimente.
 7. `POST /predict` este autentificat; `GET /health` este public.
 
-Conversațiile convertite sunt închise pentru mesaje noi. ID-ul conversației active este reținut local per cont, iar mesajele sunt recuperate din DB. Ciorna nesalvată și mesajul nesent nu sunt persistate la refresh. Erorile de trimitere păstrează textul în editor. La confirmare cu rezultat incert, interfața cere verificarea listei; backendul nu creează un al doilea tichet.
+Conversațiile convertite sunt închise pentru mesaje noi. ID-ul conversației active este reținut local per cont, iar mesajele sunt recuperate din DB. Mesajul nesent și ciorna editată sunt păstrate în `sessionStorage`, separat per cont și conversație, în fila curentă. Nu sunt stocate credențiale sau tokenuri de autentificare. Datele editorului se curăță la logout/expirarea sesiunii și după trimitere/confirmare reușită. Închiderea filei încheie această recuperare; blocarea storage-ului în browser o poate dezactiva. O ciornă depășită nu este restaurată, iar o conversație convertită este recuperată din server fără suprascriere cu o ciornă locală.
+
+Cererile frontend au un timeout de 150 secunde. După o confirmare cu răspuns pierdut, JSON/tichet invalid, timeout sau eroare ambiguă de proxy, interfața citește tichetul asociat conversației. Afișează succes numai după un răspuns valid de la server. Dacă rezultatul rămâne incert, „Verifică rezultatul” recitește starea înainte să permită retry; un istoric modificat cere regenerarea ciornei. Blocarea și constrângerea unică din backend previn duplicatele inclusiv când prima cerere este încă în curs.
 
 ## Dezvoltare și testare
 
@@ -123,6 +125,7 @@ python -m pip install -r backend/requirements.test.txt
 python -m pytest backend/tests -q --tb=short
 cd frontend
 npm ci
+npm run typecheck
 npm run lint
 npm test
 npm run build
@@ -146,3 +149,9 @@ GitHub Actions rulează backend, lint, teste frontend, build și browser desktop
 ## Starea implementării
 
 Planul, criteriile și rezultatele verificate: [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md). Scenariu RO/EN: [docs/DEMO.md](docs/DEMO.md).
+
+## Livrarea în curs
+
+Etapa 1 adaugă recuperarea confirmării, editorul recuperabil în aceeași filă, validarea strictă a schemelor legacy și verificarea TypeScript explicită a aplicației și configurațiilor Node. Colaborarea publică pe tichet, notele interne, atribuirea, redeschiderea, dashboardul, notificările și feedbackul ML sunt etape planificate, încă neimplementate. Proiectul nu este declarat complet.
+
+Reguli API: [docs/API.md](docs/API.md). Backup/restore și pregătirea mediului: [docs/OPERATIONS.md](docs/OPERATIONS.md).

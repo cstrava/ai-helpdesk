@@ -9,6 +9,7 @@ import {
 import Auth from "./Auth";
 import type { Account } from "./Auth";
 import { request, setCsrfToken, errorText } from "./api";
+import { clearUnsaved } from "./unsaved";
 import Chat from "./Chat";
 import Tickets from "./Tickets";
 export default function App() {
@@ -23,9 +24,11 @@ export default function App() {
       })
       .catch((cause) => {
         if (cause.status !== 401) setAuthError(errorText(cause));
+        else clearUnsaved();
       })
       .finally(() => setChecking(false));
     const expire = () => {
+      clearUnsaved();
       setAccount(null);
       setTicketId(null);
       setPage("chat");
@@ -38,6 +41,7 @@ export default function App() {
   async function logout() {
     try {
       await request("/auth/logout", "POST", {});
+      clearUnsaved();
       setAccount(null);
       setTicketId(null);
       setPage("chat");
@@ -45,6 +49,7 @@ export default function App() {
       setCsrfToken("");
     } catch (cause) {
       if (cause instanceof Error && "status" in cause && cause.status === 401) {
+        clearUnsaved();
         setAccount(null);
         setTicketId(null);
         setPage("chat");

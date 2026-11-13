@@ -6,6 +6,7 @@ from pathlib import Path
 
 from . import main
 from .auth import password_hash
+from .legacy_schema import validate_legacy
 
 
 def migrate():
@@ -14,25 +15,16 @@ def migrate():
         connection.execute(
             "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())"
         )
-        for path in sorted(
+        paths = sorted(
             (Path(__file__).resolve().parents[1] / "migrations").glob("*.sql")
-        ):
+        )
+        for path in paths:
             if connection.execute(
                 "SELECT 1 FROM schema_migrations WHERE version=%s", (path.name,)
             ).fetchone():
                 continue
-            # Adopt the original manually applied schema without recreating tables.
-            marker = {
-                "001": ("tickets", "id"),
-                "002": ("conversations", "id"),
-                "003": ("tickets", "title"),
-            }.get(path.name[:3])
-            exists = (
-                marker
-                and connection.execute(
-                    "SELECT 1 FROM information_schema.columns WHERE table_schema=current_schema() AND table_name=%s AND column_name=%s",
-                    marker,
-                ).fetchone()
+            exists = path.name[:3] in {"001", "002", "003"} and validate_legacy(
+                connection, paths, path
             )
             if not exists:
                 statement = (

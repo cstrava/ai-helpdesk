@@ -441,3 +441,61 @@ def test_draft_receives_only_user_facts(client, monkeypatch):
     assert client.post(f"/conversations/{conversation}/ticket-draft").status_code == 200
     assert [item["role"] for item in captured] == ["user", "user"]
     assert captured[-1]["content"] == "Corectez: este un headset, nu microfon."
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "ALTER TABLE tickets DROP COLUMN model_version",
+        "ALTER TABLE tickets ALTER COLUMN text TYPE varchar(1000)",
+        "ALTER TABLE tickets ALTER COLUMN status SET DEFAULT 'resolved'",
+        "ALTER TABLE conversation_messages ALTER COLUMN id DROP IDENTITY",
+        "ALTER TABLE tickets ALTER COLUMN text DROP NOT NULL",
+        "ALTER TABLE tickets DROP CONSTRAINT tickets_status_check",
+        "ALTER TABLE conversation_messages DROP CONSTRAINT conversation_messages_conversation_id_fkey",
+        "ALTER TABLE tickets DROP CONSTRAINT tickets_conversation_id_unique",
+        "DROP INDEX idx_conversation_messages_conversation_id_id",
+        "DROP TABLE conversation_messages",
+        "ALTER TABLE tickets DROP CONSTRAINT tickets_title_check",
+    ],
+)
+def test_legacy_adoption_rejects_partial_schema(test_db, damage):
+    with test_db() as db:
+        db.execute("DELETE FROM schema_migrations WHERE version < '004'")
+        db.execute(damage)
+    with pytest.raises(RuntimeError, match="Incompatible legacy schema"):
+        migrate()
+    with test_db() as db:
+        assert (
+            db.execute(
+                "SELECT count(*) AS n FROM schema_migrations WHERE version < '004'"
+            ).fetchone()["n"]
+            == 0
+        )
+        assert (
+            db.execute(
+                "SELECT count(*) AS n FROM information_schema.schemata WHERE schema_name LIKE 'migration_reference_%'"
+            ).fetchone()["n"]
+            == 0
+        )
+
+
+def test_confirmation_retry_recovers_existing_ticket(client, test_db):
+    conversation, draft, created = ticket(client)
+    # A client can lose the first HTTP response after this committed transaction.
+    recovered = client.get(f"/conversations/{conversation}").json()["ticket"]
+    assert recovered["id"] == created["id"]
+    assert (
+        client.post(
+            f"/conversations/{conversation}/tickets", json=confirmation_body(draft)
+        ).status_code
+        == 409
+    )
+    with test_db() as db:
+        assert (
+            db.execute(
+                "SELECT count(*) AS n FROM tickets WHERE conversation_id=%s",
+                (conversation,),
+            ).fetchone()["n"]
+            == 1
+        )

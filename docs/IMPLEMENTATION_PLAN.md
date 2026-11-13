@@ -1,6 +1,8 @@
 # Plan AI Helpdesk
 
-Păstrăm datele, modelele și identitatea vizuală. Fără commit sau push.
+Păstrăm datele, modelele și identitatea vizuală. Commiturile și push-urile pe branchuri de lucru sunt autorizate; fără merge în branchul implicit.
+
+Tabel istoric al livrării din 9 noiembrie; nu reprezintă finalizarea noilor etape de portofoliu.
 
 | Etapă | Acceptare | Progres |
 |---|---|---|
@@ -12,6 +14,22 @@ Păstrăm datele, modelele și identitatea vizuală. Fără commit sau push.
 | 6 Docker/migrări | Runner versionat compatibil cu datele existente, Compose complet, 5434 | Finalizat: imagini construite, config validă, modele reale și persistență sesiune/conversație după restart API verificate în DB izolată |
 | 7 Teste/CI | Izolare, roluri, flux complet simulat fără GPU, frontend, Actions | Finalizat local: 31 backend, 7 frontend și 2 fluxuri browser desktop/mobil cu roluri și audit trecute. Actions configurat; neexecutat remote |
 | 8 Documentație | Instalare, demo RO/EN, limite ML, verificări finale | Finalizat: README/DEMO, capturi și tastatură verificate, rezultate și limitări consemnate |
+
+## Livrare portofoliu — 2026-11-13
+
+Bază verificată: branch implicit `feature/data-pipeline`, commit `8474796`, working tree curat. CI istoric pe această bază: 31 backend, 7 frontend, 2 browser, build și lint reușite. Aceste rezultate nu validează schimbările noi.
+
+| Etapă | Criterii verificabile | Stare |
+|---|---|---|
+| 1 Stabilitate | Instalare curată, typecheck inclusiv Node, lint/test/build; recuperare confirmare după răspuns pierdut fără duplicate; sessionStorage per cont/conversație cu ștergere la logout; respingere explicită a schemelor legacy parțiale și păstrarea datelor | Implementată pe `fix/application-reliability`; verificări locale trecute, CI nou în așteptare |
+| 2 Colaborare | Fir public separat de AI, note interne invizibile userilor, mesaje idempotente, atribuiri concurente protejate, rezolvare cu mesaj și redeschidere cu motiv; API/UI și teste de izolare | Neîncepută |
+| 3 Spațiu support | Filtre combinate, impact declarat de user, prioritate auditată, dashboard cu formule/interval/excluderi, notificări persistente fără duplicate sau scurgeri din note | Neîncepută |
+| 4 Feedback ML | Revizuire explicită invalidabilă, export minimal support-only, evaluare reproductibilă cu proveniență și metrici RO/EN separate; fără reantrenare sau înlocuirea modelului | Neîncepută |
+| 5 Integrare și documentație | E2E desktop/mobil pentru flux complet, migrare de la zero și upgrade, restart/Nginx, RO/EN real în mediu izolat, instrucțiuni backup/restore/demo și CI final | Neîncepută |
+
+Reguli: baza personală nu este fixture; testele folosesc PostgreSQL separat. Nu publicăm date, exporturi, secrete sau modele. PR-uri tematice, eventual în lanț, fără force-push sau merge. Etapele neterminate rămân marcate explicit.
+
+## Istoric anterior
 
 ## Decizii
 
@@ -33,7 +51,7 @@ Păstrăm datele, modelele și identitatea vizuală. Fără commit sau push.
 
 ## Limite ale verificării
 
-CI este configurat, dar nu s-a făcut push și nu există o execuție GitHub Actions remote. Testele automate nu validează calitatea generală a modelelor. Rezultatele reale RO/EN și verificările finale sunt completate mai jos după rulare.
+La 9 noiembrie, CI era configurat, dar nu exista o execuție remote. La 13 noiembrie, baza `8474796` are [CI reușit](https://github.com/cstrava/ai-helpdesk/actions/runs/43449306371). Testele automate nu validează calitatea generală a modelelor. Rezultatele reale RO/EN și verificările finale sunt completate mai jos după rulare.
 
 ## Rezultate finale și limitări observate
 
@@ -43,7 +61,7 @@ CI este configurat, dar nu s-a făcut push și nu există o execuție GitHub Act
 - Qwen a repetat întrebări și a generalizat unele detalii. Inițial a copiat fapte din întrebările asistentului; generatorul primește acum doar mesajele user, iar testul de regresie confirmă filtrarea. Repetarea testului real nu a mai introdus afirmația neconfirmată despre conectarea dispozitivului; unele generalizări și întrebări repetitive rămân limitări reale. Ciorna editabilă și confirmarea umană sunt esențiale.
 - API restart: /health 200, sesiunea și conversația de test persistente; migrările au putut rula din nou fără recrearea datelor.
 - În runda inițială nu am aplicat migrările pe volumul PostgreSQL al aplicației; testele au folosit ai_helpdesk_test într-un container separat. Pornirea efectivă, autorizată ulterior, este consemnată mai jos.
-- Nu există execuție Actions remote (fără commit/push); nu au fost verificate Safari/Firefox sau un telefon fizic. Verificarea mobilă folosește Chromium cu emulare Pixel 7.
+- La acea dată nu exista execuție Actions remote (fără commit/push); nu au fost verificate Safari/Firefox sau un telefon fizic. Verificarea mobilă folosește Chromium cu emulare Pixel 7.
 
 ## Închidere — 2026-11-09
 
@@ -63,3 +81,13 @@ CI este configurat, dar nu s-a făcut push și nu există o execuție GitHub Act
 - API, PostgreSQL, frontend și Ollama sunt healthy. Interfață: http://127.0.0.1:5173 ; HTTP 200 pentru pagină și /api/health, HTTP 401 pentru sesiune absentă. PostgreSQL publicat pe 127.0.0.1:5434.
 - Nu au fost create conturi sau parole de demonstrație în baza aplicației. User se creează prin înregistrarea publică; support prin CLI interactiv, cu email separat.
 - Containerul de verificare a backupului este oprit după verificare; aplicația rămâne pornită. Nu s-au șters volume sau resetat baze de date. Fără commit/push.
+
+## Verificări etapa 1 — 2026-11-13
+
+- Instalare curată `npm ci`: reușită; zero vulnerabilități raportate în acea instalare. Tipuri Node declarate explicit; typecheck acoperă aplicația și configurațiile Vite/Vitest/Playwright. Lint, 19 teste frontend și build trecute.
+- 43 teste backend trecute pe PostgreSQL separat, port 55434: inclusiv confirmare concurentă/retry, upgrade legacy cu păstrarea datelor, migrare de la zero și 11 variante de schemă incompatibilă (coloane, tip, default, identity, nullability, check, FK, unicitate, index, tabel lipsă).
+- 4 teste Playwright trecute: flux existent și recuperare după 502 produs după salvarea reală a tichetului, fiecare pe desktop și Pixel 7 emulat. ML/LLM simulate în aceste teste.
+- Imagini API/frontend construite separat; integrare Nginx pe 5175 și API pe 8002, exclusiv pe baza ai_helpdesk_smoke din containerul de test. Fluxuri reale RO și EN: conversație, ciornă, clasificare v2 (Hardware/Access pentru cele două exemple), confirmare, GET de recuperare, retry 409 și logout trecute.
+- După restartul exclusiv al API-ului de verificare, sesiunea, cele două conversații și legăturile la tichete au persistat; runnerul a rulat din nou fără recrearea datelor.
+- Observație calitativă: Qwen a cerut aplicația de apeluri în RO și dispozitivul în EN deși problema/impactul erau deja descrise. Ciornele inspectate nu au introdus detalii noi evidente. Două exemple nu reprezintă evaluare generală ML. Modelul activ și ponderile nu au fost modificate; scorurile istorice v1/v2 rămân distincte.
+- Nu am aplicat modificări sau teste pe baza personală și nu am actualizat containerele aplicației existente. Etapele 2–5 rămân neterminate.
