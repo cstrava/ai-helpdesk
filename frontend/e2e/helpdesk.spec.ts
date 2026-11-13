@@ -1,6 +1,59 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
+async function expectReadableContrast(page: import("@playwright/test").Page) {
+  const failures = await page.evaluate(() => {
+    const luminance = (color: number[]) => {
+      const channels = color.map((channel) => {
+        const value = channel / 255;
+        return value <= 0.04045
+          ? value / 12.92
+          : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    };
+    const rgb = (value: string) =>
+      value.match(/[\d.]+/g)?.slice(0, 3).map(Number) ?? [0, 0, 0];
+    const contrast = (foreground: string, background: string) => {
+      const first = luminance(rgb(foreground));
+      const second = luminance(rgb(background));
+      return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+    };
+    const failures: Array<{ selector: string; text: string; ratio: number }> = [];
+    for (const element of document.querySelectorAll<HTMLElement>("body *")) {
+      const hasText = Array.from(element.childNodes).some(
+        (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+      );
+      if (!hasText || element.getClientRects().length === 0) continue;
+      let opacity = 1;
+      let background = "rgb(246, 248, 247)";
+      for (let current: HTMLElement | null = element; current; current = current.parentElement) {
+        const style = getComputedStyle(current);
+        opacity *= Number(style.opacity);
+        if (style.backgroundColor !== "rgba(0, 0, 0, 0)") {
+          background = style.backgroundColor;
+          break;
+        }
+      }
+      if (opacity < 0.98) continue;
+      const style = getComputedStyle(element);
+      const size = Number.parseFloat(style.fontSize);
+      const bold = Number.parseInt(style.fontWeight, 10) >= 700;
+      const minimum = size >= 24 || (size >= 18.66 && bold) ? 3 : 4.5;
+      const ratio = contrast(style.color, background);
+      if (ratio < minimum) {
+        failures.push({
+          selector: `${element.tagName.toLowerCase()}.${element.className.toString().replaceAll(" ", ".")}`,
+          text: element.textContent?.trim().slice(0, 60) ?? "",
+          ratio: Math.round(ratio * 100) / 100,
+        });
+      }
+    }
+    return failures;
+  });
+  expect(failures).toEqual([]);
+}
+
 test("login → conversation → editable draft → confirmation → ticket → restored history", async ({
   page,
 }, testInfo) => {
@@ -89,6 +142,7 @@ test("login → conversation → editable draft → confirmation → ticket → 
   await page.getByRole("button", { name: "Tichete", exact: true }).click();
   await page.getByLabel("Caută în toate tichetele").fill(title);
   await page.getByRole("button", { name: title, exact: true }).click();
+  await expectReadableContrast(page);
   await page
     .getByLabel("Categoria finală", { exact: true })
     .selectOption("Hardware");
