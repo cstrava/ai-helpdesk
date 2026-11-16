@@ -50,6 +50,13 @@ ml/models/xlm_roberta_helpdesk_v2/model/
   tokenizer_config.json
 ```
 
+For a new checkout, start from `main`:
+
+```bash
+git clone --branch main https://github.com/cstrava/ai-helpdesk.git
+cd ai-helpdesk
+```
+
 From the repository root, create `.env` only if it does not exist:
 
 ```bash
@@ -102,4 +109,4 @@ The historical [grouped test report](ml/reports/grouped/test_comparison.json) co
 
 Useful next steps are an independently held-out bilingual evaluation set with scenario-level separation, versioned v2 training configuration, broader accessibility/browser checks, and account recovery. These are planned improvements, not implemented features.
 
-The working branch contains the five implementation stages described in the [implementation and verification record](docs/IMPLEMENTATION_PLAN.md). The recorded PRs form a chain and have not been merged into the default branch. The documentation describes the code in this checkout; it does not imply that the running application has been upgraded to it. Endpoint contracts are documented in the [API reference](docs/API.md).
+Use `main` as the starting point for this version. The [v1.0.0 integration PR](https://github.com/cstrava/ai-helpdesk/pull/6) combines all five stages without rewriting their history. The [release verification record](docs/RELEASE_VERIFICATION.md) separates the rerun application checks from historical results. The [implementation record](docs/IMPLEMENTATION_PLAN.md) preserves the earlier staged delivery. Updating a checkout does not upgrade an already running container; follow the backup and migration guide before rebuilding against an existing database. Endpoint contracts are in the [API reference](docs/API.md).

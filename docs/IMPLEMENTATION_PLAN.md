@@ -1,6 +1,6 @@
 # Implementation and verification record
 
-This record describes the implementation on the portfolio branch and the checks recorded on **13 November 2026**. It is not a live CI status page. The five stages were delivered as stacked pull requests; the recorded verification does not establish that they have been merged into the default branch.
+This historical record describes the five-stage delivery and the checks recorded on **13 November 2026**. The stages were originally submitted as stacked pull requests. The cumulative [v1.0.0 integration PR](https://github.com/cstrava/ai-helpdesk/pull/6) targets `main`; current release checks are recorded separately in [Release verification](RELEASE_VERIFICATION.md). This document is not a live CI status page.
 
 Setup and recovery procedures are maintained in [Operations](OPERATIONS.md), endpoint behavior in [API](API.md), and model results in [ML evaluation](ML_EVALUATION.md).
 
