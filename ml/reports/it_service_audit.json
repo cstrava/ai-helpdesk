@@ -1,0 +1,28 @@
+{
+  "source": "https://www.kaggle.com/datasets/adisongoh/it-service-ticket-classification-dataset",
+  "license_as_displayed_on_source": "CC0: Public Domain",
+  "file_sha256": "044fdace33fa564e1e60453f2941dafc95539c99878b0d32746950394b9dd4d4",
+  "total_rows": 47837,
+  "empty_text_rows": 0,
+  "empty_label_rows": 0,
+  "valid_rows": 47837,
+  "duplicate_text_rows_beyond_first": 0,
+  "texts_with_conflicting_labels": 0,
+  "rows_with_conflicting_labels": 0,
+  "candidate_rows_after_exact_dedup_and_conflict_removal": 47837,
+  "candidate_class_counts": {
+    "Hardware": 13617,
+    "HR Support": 10915,
+    "Access": 7125,
+    "Miscellaneous": 7060,
+    "Storage": 2777,
+    "Purchase": 2464,
+    "Internal Project": 2119,
+    "Administrative rights": 1760
+  },
+  "limitations": [
+    "Only exact duplicates after case and whitespace normalization checked.",
+    "Near-duplicates and template similarities are not checked.",
+    "Candidate filtering is diagnostic; the source CSV is unchanged."
+  ]
+}

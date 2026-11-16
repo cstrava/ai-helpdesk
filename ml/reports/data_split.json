@@ -1,0 +1,54 @@
+{
+  "source_sha256": "044fdace33fa564e1e60453f2941dafc95539c99878b0d32746950394b9dd4d4",
+  "seed": 42,
+  "strategy": "stratified_random_80_10_10",
+  "input_rows": 47837,
+  "retained_rows": 47837,
+  "removed_rows": 0,
+  "exact_text_overlap": false,
+  "near_duplicate_check_performed": false,
+  "splits": {
+    "train": {
+      "rows": 38269,
+      "sha256": "ec73da0ba7384b4047368ddc4fdf893c6772020c4a23c062abef4a50b4f058f0",
+      "class_counts": {
+        "Hardware": 10893,
+        "HR Support": 8732,
+        "Access": 5700,
+        "Miscellaneous": 5648,
+        "Storage": 2222,
+        "Purchase": 1971,
+        "Internal Project": 1695,
+        "Administrative rights": 1408
+      }
+    },
+    "validation": {
+      "rows": 4784,
+      "sha256": "0f9187a1b0fdd1c4e1589419c5191fb5d5b43dca5ff9c2ad73f3521f77fca4cb",
+      "class_counts": {
+        "Hardware": 1362,
+        "HR Support": 1092,
+        "Access": 712,
+        "Miscellaneous": 706,
+        "Storage": 278,
+        "Purchase": 246,
+        "Internal Project": 212,
+        "Administrative rights": 176
+      }
+    },
+    "test": {
+      "rows": 4784,
+      "sha256": "1024b22c3d15c323fc89ebe5fff9ed3ecbb5b3d84af49f44fa595eac2c3dcc22",
+      "class_counts": {
+        "Hardware": 1362,
+        "HR Support": 1091,
+        "Access": 713,
+        "Miscellaneous": 706,
+        "Storage": 277,
+        "Purchase": 247,
+        "Internal Project": 212,
+        "Administrative rights": 176
+      }
+    }
+  }
+}

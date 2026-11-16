@@ -1,0 +1,42 @@
+{
+  "name": "ai-helpdesk-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "lint": "npm run typecheck && eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "globals": "^16.5.0",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^7.2.0",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
+  }
+}

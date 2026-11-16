@@ -1,0 +1,33 @@
+scenario_id,label,ro,en
+access_1,Access,"Am primit invitația în wiki, dar la conectare îmi spune că invitația a expirat.","I got the wiki invitation, but it says the invite expired when I try to sign in."
+access_2,Access,Am schimbat cartela și nu mai primesc codul pentru portalul de facturi.,I changed my SIM and no longer receive the code for the billing portal.
+access_3,Access,Contul meu de test e dezactivat. Îl puteți reactiva pentru azi?,My test account is disabled. Could you reactivate it for today?
+access_4,Access,"Laptopul pornește, dar mi-am uitat PIN-ul și nu mai pot intra în cont.","My laptop boots, but I forgot my PIN and cannot sign in."
+administrative_rights_1,Administrative rights,Pe laptop sunt conectat. Instalarea certificatului la nivel de sistem cere aprobare de administrator.,I'm signed into the laptop. Installing the system-wide certificate needs administrator approval.
+administrative_rights_2,Administrative rights,Pot citi serviciile de pe server. Am nevoie de privilegii ca să schimb ordinea lor de pornire.,I can view the services on the server. I need elevated privileges to change their startup order.
+administrative_rights_3,Administrative rights,"Pot folosi imprimanta, dar numai administratorul poate schimba politica de imprimare. Îmi acordați rolul pentru azi?","I can use the printer, but only an administrator can change the printing policy. Can you grant me that role for today?"
+administrative_rights_4,Administrative rights,Trebuie să modific regulile firewall pe stația de laborator. Solicit drepturi elevate pentru intervenție.,I need to edit firewall rules on the lab workstation. I'm requesting elevated rights for this change.
+hr_support_1,HR Support,Am trecut la program de șase ore. Fluturașul de salariu reflectă încă norma veche.,I switched to a six-hour workday. My payslip still shows my old schedule.
+hr_support_2,HR Support,Vă rog să îmi eliberați o adeverință de angajat pentru bancă.,Please issue a certificate of employment for my bank.
+hr_support_3,HR Support,Numele de familie s-a schimbat. Ce documente trimit pentru actualizarea contractului?,My last name changed. Which documents do I submit to update my contract?
+hr_support_4,HR Support,Câte zile de concediu mai pot reporta anul acesta?,How many leave days can I carry over this year?
+hardware_1,Hardware,Laptopul scoate un zgomot metalic de la ventilator și se încinge imediat.,The laptop fan makes a scraping sound and heats up immediately.
+hardware_2,Hardware,Mufa de alimentare a imprimantei s-a desprins. Poate veni cineva să o repare?,The printer's power socket came loose. Can someone come repair it?
+hardware_3,Hardware,"Stația de andocare nu mai alimentează niciun laptop, inclusiv cu alt încărcător.","The dock won't power any laptop, even with a different charger."
+hardware_4,Hardware,Scannerul citește numai jumătate de pagină. Sticla pare crăpată.,The scanner only reads half of each page. The glass looks cracked.
+internal_project_1,Internal Project,În registrul proiectului intern Far trebuie actualizat bugetul etapei pilot conform deciziei de ieri.,Please update the pilot budget in the internal Far project register following yesterday's decision.
+internal_project_2,Internal Project,Mutăm livrarea prototipului din proiectul intern Iris în sprintul următor. Puteți actualiza planul?,We're moving prototype delivery for the internal Iris project to the next sprint. Can you update the plan?
+internal_project_3,Internal Project,Vă rog să marcați ca acceptat primul livrabil al proiectului intern Arin.,Please mark the first deliverable of our internal Arin project as accepted.
+internal_project_4,Internal Project,"Am primit codul fazei de analiză din proiectul intern Coral, dar lipsește faza de execuție din registru.","I received the analysis phase code for the internal Coral project, but the execution phase is missing from the register."
+miscellaneous_1,Miscellaneous,Anunțul de pe pagina de pornire indică încă ora veche pentru exercițiul de evacuare. Puteți corecta ora?,The homepage notice still gives the old time for the evacuation drill. Can you correct it?
+miscellaneous_2,Miscellaneous,Cine administrează lista de distribuție a clubului de lectură? Aș vrea să le transmit o propunere.,Who manages the book club mailing list? I'd like to send them a suggestion.
+miscellaneous_3,Miscellaneous,Harta de pe intranet arată sala de ședințe la etajul greșit. Puteți corecta legenda?,The intranet map shows the meeting room on the wrong floor. Could you correct the legend?
+miscellaneous_4,Miscellaneous,Avizierul digital afișează programul de vizite din vară. Vă trimit orarul actual pentru publicare.,The digital noticeboard shows summer visiting hours. I'm sending the current schedule for publication.
+purchase_1,Purchase,Noua sală nu are imprimantă. Avem buget aprobat și vrem să lansăm comanda.,The new room has no printer. Our budget was approved and we'd like to place the order.
+purchase_2,Purchase,Ce ofertă a fost acceptată pentru laptopurile comandate luna trecută?,Which quote was accepted for the laptops ordered last month?
+purchase_3,Purchase,Furnizorul ne-a trimis două prețuri pentru scanner. Am nevoie de numărul cererii de achiziție.,The supplier sent two prices for the scanner. I need the purchase requisition number.
+purchase_4,Purchase,Vreau să anulez comanda de stații de andocare înainte să fie expediată.,I'd like to cancel the order for docking stations before it ships.
+storage_1,Storage,Cota din directorul pentru exporturi e aproape plină. Avem nevoie de încă 20 GB.,The export directory is close to its quota. We need another 20 GB.
+storage_2,Storage,Backupul de pe NAS s-a oprit fiindcă destinația nu mai are spațiu. Puteți extinde volumul?,The NAS backup stopped because the destination ran out of space. Could you extend the volume?
+storage_3,Storage,Am suprascris fișierul cu tarife. Puteți recupera versiunea de luni din snapshot?,I overwrote the rates file. Can you recover Monday's version from the snapshot?
+storage_4,Storage,Vrem să păstrăm copiile bazei de date 60 de zile în loc de 30. Puteți actualiza retenția?,We'd like database backups kept for 60 days instead of 30. Can you update retention?
