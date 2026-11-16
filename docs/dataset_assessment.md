@@ -1,55 +1,32 @@
-# Initial Dataset Assessment
+# Dataset assessment
 
-## Dataset
+## Source and initial checks
 
-- Source: https://www.kaggle.com/datasets/adisongoh/it-service-ticket-classification-dataset
-- License displayed by source: CC0: Public Domain
-- Records: 47,837
-- Categories: 8
+The initial corpus is the [IT Service Ticket Classification Dataset](https://www.kaggle.com/datasets/adisongoh/it-service-ticket-classification-dataset). The tracked [source audit](../ml/reports/it_service_audit.json) records 47,837 rows across eight categories and the source's displayed license, CC0: Public Domain. This is recorded provenance, not a new license review.
 
-## Automated checks
+The audit found no empty texts or labels, no duplicate texts after case and whitespace normalization, and no identical normalized texts with conflicting labels. Those checks do not rule out near-duplicates or labeling errors. The audit retained the source CSV unchanged.
 
-- No missing texts or labels.
-- No exact duplicate texts after case and whitespace normalization.
-- No identical normalized texts with conflicting labels.
-- Near-duplicates have not been checked.
+## Historical baseline and leakage checks
 
-## Baseline
+The first TF-IDF + Linear SVM baseline used a stratified random 80/10/10 split with seed 42. On its 4,784-row validation partition, [the report](../ml/reports/baseline_validation.json) records accuracy 0.8622 and macro-F1 0.8615. These are historical random-split results, distinct from the grouped baseline in the [current model comparison](ML_EVALUATION.md).
 
-TF-IDF + Linear SVM, evaluated on the validation partition:
+A subsequent [nearest-neighbor audit](../ml/reports/near_duplicate_audit.json) found 138 validation rows with word TF-IDF cosine similarity of at least 0.95 to training rows, and 116 test rows at that threshold against training. Similarity indicates possible template leakage; it does not by itself prove identical incidents.
 
-- Accuracy: 0.8622
-- Macro-F1: 0.8615
+The later [grouped split](../ml/reports/grouped_data_split.json) keeps connected components at similarity threshold 0.95 together, using stratified group folds with seed 42. It records 46,848 groups and no cross-split group overlap. This reduces leakage under that similarity rule; it does not establish that all semantically related tickets are isolated.
 
-These results measure agreement with the dataset labels, not verified
-performance on natural user tickets or Romanian text.
+## Recorded manual review
 
-## Manual review
+The initial review sampled ten training examples from each of Administrative rights, Access and Hardware. It recorded these observations:
 
-Reviewed 10 training examples from each of three categories:
-Administrative rights, Access, and Hardware.
+- Texts appeared heavily preprocessed and sometimes lacked essential context.
+- Administrative rights included installation and update requests without explicit references to elevated permissions.
+- Access included physical access cards, licenses and administrative accounts.
+- Hardware included some application, reporting and access issues.
 
-Observed issues:
+The original routing rules are unknown. These observations suggest a mismatch with the proposed application taxonomy, rather than proving that the original labels are wrong. The small review does not establish a dataset-wide label error rate.
 
-- Texts appear heavily preprocessed and sometimes lack essential context.
-- Administrative rights contains installation and update requests without
-  explicit references to elevated permissions.
-- Access includes physical access cards, licenses, and administrative accounts.
-- Hardware includes several application, reporting, and access issues.
+## Interpretation and subsequent work
 
-The original routing rules are unknown. These observations indicate a
-mismatch with our proposed application taxonomy, not proof that all
-original labels are incorrect.
+The initial assessment recommended retaining the dataset as an experiment and pausing fine-tuning while reviewing alternatives. That was a historical recommendation: the repository now includes evaluation artifacts for XLM-R v1 and a local bilingual v2 adaptation. Their results and reproducibility limits are documented in [ML evaluation](ML_EVALUATION.md).
 
-The small review sample does not establish a dataset-wide label error rate.
-
-## Decision
-
-Retain this dataset and baseline as an initial experiment.
-Pause fine-tuning on these labels.
-
-Evaluate alternative datasets with documented categories, natural ticket
-text, clear provenance, and suitable usage terms before selecting the
-application's final taxonomy.
-
-Do not manually relabel validation or test examples based on model errors.
+Dataset scores measure agreement with source labels, not verified performance on natural user tickets or Romanian text. Future dataset selection should review category definitions, text quality, provenance and usage terms. Validation and test labels should not be changed merely because a model predicts something different.

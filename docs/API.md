@@ -1,91 +1,95 @@
-# API și reguli de acces
+# API and access rules
 
-Documentația OpenAPI este disponibilă la `http://127.0.0.1:8000/docs`. Frontendul folosește prefixul `/api` prin Nginx; API-ul direct nu are acest prefix.
+OpenAPI is available at `http://127.0.0.1:8000/docs` when the API is running. Nginx exposes the same routes under `/api` for the frontend; direct API requests omit that prefix. This document describes the implementation in this checkout, including migrations 001–007.
 
-## Autentificare
+## Authentication
 
-`POST /auth/register` creează doar user. `POST /auth/login` setează cookie HttpOnly și returnează identitatea și CSRF. `GET /auth/me` recuperează sesiunea. `POST /auth/logout` o invalidează. Operațiile de scriere autentificate cer `X-CSRF-Token`; originea trebuie să corespundă configurației. Înregistrarea/loginul sunt limitate la 30 de cereri în 10 minute per peer direct și operație.
+`POST /auth/register` creates a `user` account. `POST /auth/login` sets the `helpdesk_session` HttpOnly cookie and returns the account identity and `csrf_token`. `GET /auth/me` retrieves the current session; `POST /auth/logout` revokes it.
 
-## Conversații și confirmare
+Authenticated writes require the cookie and `X-CSRF-Token` header. If an `Origin` header is present, it must match `APP_ORIGIN`; requests marked `Sec-Fetch-Site: cross-site` are rejected. Registration and login also apply the origin checks. Each is limited to 30 requests per ten-minute window per direct network peer. Proxy headers are not trusted, so users behind the local Nginx proxy share a rate-limit bucket.
 
-| Endpoint | Acces / rezultat |
+## Conversations and ticket confirmation
+
+| Endpoint | Access and behavior |
 |---|---|
-| `POST /conversations` | user/support; creează conversație proprie |
-| `GET /conversations?limit=21&offset=0` | numai conversații proprii, ordine descrescătoare după created_at și id |
-| `GET /conversations/{id}` | numai proprietar; include tichetul asociat sau `ticket: null` |
-| `GET /conversations/{id}/messages` | numai proprietar; ordine după id |
-| `POST /conversations/{id}/messages` | numai proprietar; `content` 1–1000 caractere după trim; 409 dacă este convertită sau ocupată |
-| `POST /conversations/{id}/ticket-draft` | numai proprietar; propunere validată, fără salvare ca tichet |
-| `POST /conversations/{id}/tickets` | numai proprietar; confirmare explicită, 201 la creare, 409 dacă este duplicată, ocupată sau depășită |
-| `POST /tickets` | 410; vechea creare directă este închisă |
+| `POST /conversations` | Signed-in users and support agents; creates an owned conversation |
+| `GET /conversations?limit=21&offset=0` | Own conversations only; ordered by `created_at DESC, id DESC` |
+| `GET /conversations/{id}` | Owner only; includes the linked ticket or `ticket: null` |
+| `GET /conversations/{id}/messages` | Owner only; ordered by message ID |
+| `POST /conversations/{id}/messages` | Owner only; trimmed `content` of 1–1000 characters; 409 if converted or busy |
+| `POST /conversations/{id}/ticket-draft` | Owner only; returns a validated proposal without creating a ticket |
+| `POST /conversations/{id}/tickets` | Owner only; explicit confirmation; 201 on creation, 409 for duplicate, busy or stale requests |
+| `POST /tickets` | 410; the former direct creation route is disabled |
 
-Confirmarea cere `title` (1–160 caractere), `description` (1–2000), `last_message_id` întreg pozitiv și `confirmed: true` boolean strict. Textul este reclasificat. Ciorna trebuie să corespundă ultimului mesaj. Blocarea tranzacțională și unicitatea conversation_id protejează confirmările concurente.
+Confirmation requires a trimmed `title` (1–160 characters), `description` (1–2000), positive integer `last_message_id` and strict boolean `confirmed: true`. Optional `impact` is `individual`, `team` or `organization`; it is user-declared, not inferred by a model. The edited title and description are classified again. Confirmation must reference the latest message. Transactional locking and a unique conversation-to-ticket constraint protect concurrent requests.
 
-După un răspuns pierdut clientul citește `GET /conversations/{id}`. Numai prezența unui tichet valid confirmă succesul. Un `ticket: null` nu garantează că prima cerere nu mai rulează; un eventual retry rămâne protejat de backend. Ciornă depășită: regenerare și reconfirmare, fără retry automat al textului vechi.
+After a lost response, read `GET /conversations/{id}`. A valid linked ticket confirms success. `ticket: null` does not prove the first request has finished; any retry is still protected by the backend. A stale draft requires regeneration and confirmation rather than automatic resubmission of old text.
 
-## Tichete
+## Tickets
 
-| Endpoint | Acces / rezultat |
+| Endpoint | Access and behavior |
 |---|---|
-| `GET /tickets` | user: proprii; support: toate, inclusiv cele istorice fără owner |
-| `GET /tickets/{id}` | aceleași reguli de vizibilitate |
-| `PATCH /tickets/{id}` | numai support; `final_category`, `status` și/sau `priority`; statusul și prioritatea cer `expected_version` când se schimbă |
-| `GET /tickets/{id}/events` | cei care pot vedea tichetul; actor, dată, câmp, valori vechi/noi |
-| `POST /predict` | autentificat și CSRF; clasificare v2 |
-| `GET /health` | public; verifică disponibilitatea DB, fără inferență |
+| `GET /tickets` | Users: own tickets; support: all tickets, including historical records without an owner |
+| `GET /tickets/{id}` | Same visibility rules as the list |
+| `PATCH /tickets/{id}` | Support only; updates `final_category`, `status` and/or `priority` |
+| `GET /tickets/{id}/events` | Anyone who can view the ticket; actor, timestamp, field and old/new values |
+| `POST /predict` | Authentication and CSRF required; body `{"text":"..."}` with 1–12000 trimmed characters; returns category and v2 model version |
+| `GET /health` | Public database availability check; does not run inference |
 
-Filtre: `search` (maximum 200 caractere; căutare literală case-insensitive în titlu/descriere/UUID), `status`, `category`, `priority`, `assigned_to_me=true` și `unassigned=true` (ultimele două numai support și mutual exclusive), `limit` 1–100, `offset` ≥0. Ordine: created_at DESC, id DESC. Auditul este tranzacțional; salvările identice nu produc evenimente.
+List filters are `search` (up to 200 characters; literal case-insensitive match against title, description and UUID), `status`, `category`, `priority`, `assigned_to_me=true` and `unassigned=true`. The last two are support-only and mutually exclusive. Pagination uses `limit` (1–100, default 20) and nonnegative `offset`; order is `created_at DESC, id DESC`. New inserts can shift offset pages.
 
-Accesul la resursele altui user returnează 404. Support nu primește automat acces la conversațiile AI ale altora. Stările sunt open, in_progress și resolved; regulile de tranziție, rezolvare și redeschidere sunt descrise mai jos.
+Access to another user's resources returns 404. Support access to tickets does not grant access to other users' AI conversations. Categories are `Access`, `Administrative rights`, `HR Support`, `Hardware`, `Internal Project`, `Miscellaneous`, `Purchase` and `Storage`. Priorities are `low`, `normal`, `high` and `urgent`; existing tickets receive `normal` during migration. Only support can change priority.
 
-Testele browser/backend simulează inferența; serverul de producție nu oferă un mod mock.
+## Ticket collaboration and concurrency
 
-## Colaborare pe tichet — etapa 2
+The ticket thread is separate from the AI conversation. Migration 005 adds assignment, optimistic versions, messages and workflow timestamps. `updated_at` tracks metadata/status changes; ordinary replies and internal notes do not change it. Unknown historical timestamps remain unknown. `first_resolved_at` comes from an existing resolution audit event or the first new resolution and is preserved after reopening.
 
-Migrarea 005 adaugă firul separat de AI, responsabilul, versiunea pentru concurență, prioritatea implicită normal și datele fluxului. `updated_at` reprezintă actualizarea metadatelor/statusului; notele interne nu îl modifică. Datele istorice fără dovezi rămân necunoscute. `first_resolved_at` se completează numai dintr-un eveniment de rezolvare existent sau la prima rezolvare nouă și nu este rescris la redeschidere.
-
-| Endpoint | Reguli |
+| Endpoint | Rules |
 |---|---|
-| `GET /support/agents` | support-only; lista conturilor support valide |
-| `GET /tickets/{id}/messages?limit=50&after_id={uuid}` | proprietar/support; ordine created_at ASC, id ASC; cursor UUID vizibil în același tichet |
-| `POST /tickets/{id}/messages` | proprietar/support; content 1–4000 după trim, request_id UUID; visibility public implicit sau internal exclusiv support |
-| `POST /tickets/{id}/claim` | support; expected_version; numai tichet neatribuit |
-| `PUT /tickets/{id}/assignment` | support; expected_version și assignee_id support valid sau null pentru dezatribuire |
-| `POST /tickets/{id}/reopen` | proprietar/support; reason 1–4000, expected_version și request_id UUID; numai resolved → open |
+| `GET /support/agents` | Support only; returns support account IDs and emails |
+| `GET /tickets/{id}/messages?limit=50&after_id={uuid}` | Owner/support; ordered by `created_at ASC, id ASC`; limit 1–100; cursor must identify a visible message in this ticket |
+| `POST /tickets/{id}/messages` | Owner/support; trimmed `content` of 1–4000 characters and UUID `request_id`; `visibility` defaults to `public`; `internal` is support-only |
+| `POST /tickets/{id}/claim` | Support; requires `expected_version`; ticket must be unassigned |
+| `PUT /tickets/{id}/assignment` | Support; requires `expected_version` and a support `assignee_id`, or `null` to unassign |
+| `POST /tickets/{id}/reopen` | Owner/support; requires trimmed `reason` of 1–4000 characters, `expected_version` and UUID `request_id`; only `resolved → open` |
 
-`PATCH /tickets/{id}` rămâne support-only pentru categorie/status. Schimbarea statusului cere expected_version. Rezolvarea cere și resolution_message (1–4000) și request_id UUID; mesajul devine public. Versiunea este returnată de listă/detaliu/creare și crește la schimbarea metadatelor/statusului/atribuirii. O versiune depășită produce 409 fără salvare parțială. Corectarea categoriei poate include expected_version; frontendul îl trimite întotdeauna.
+Ticket creation, list and detail responses include `version`. Metadata, status and assignment changes increment it. A stale `expected_version` returns 409 without a partial save. Status and priority changes require a version; category-only updates may omit it, although the frontend always supplies it. Unchanged saves create no audit event.
 
-Tranziții permise: open → in_progress sau resolved; in_progress → open sau resolved, numai support. resolved → open cere operația de redeschidere și motiv. O salvare fără schimbare nu adaugă audit. Răspunsurile obișnuite, inclusiv pe tichete resolved, nu schimbă statusul. Conversația AI convertită rămâne închisă chiar după redeschiderea tichetului.
+Support may move `open → in_progress/resolved` or `in_progress → open/resolved`. Resolving through `PATCH` also requires `resolution_message` (1–4000 trimmed characters) and UUID `request_id`; the message is public. Reopening requires the dedicated route and a reason. Ordinary replies, including replies to resolved tickets, never change status. A converted AI conversation remains closed after ticket reopening.
 
-Idempotency: cheia request_id este unică per tichet și autor. Retry cu același conținut/vizibilitate/tip returnează același mesaj; reutilizarea pentru alt conținut produce 409. Mesajele de redeschidere se deduplică la fel. O confirmare de rezolvare repetată cu versiunea veche poate returna 409: reîncarcă tichetul, fără duplicarea mesajului. Două preluări sau tranziții concurente cu aceeași versiune au un singur câștigător.
+Message `request_id` is unique per ticket and author. Repeating the same content, visibility and message kind returns the existing message; reusing the ID with different values returns 409. Reopen requests use the same deduplication rule. Retrying resolution with an old version can return 409: reload the ticket to inspect the result. Concurrent claims or transitions using the same version have one successful writer.
 
-Notele interne sunt filtrate în SQL înaintea paginării pentru user; un cursor către o notă internă returnează 404. Nu sunt introduse în audit și nu schimbă versiunea/datele publice ale tichetului. UUID-urile evită expunerea unui contor secvențial. Nu există contoare publice de note.
+Internal notes are filtered in SQL before user pagination. A user cursor pointing to an internal note returns 404. Notes are absent from the public audit and do not change the ticket version or public timestamps. Message IDs are UUIDs, and no public note counter is exposed.
 
-## Spațiul support — etapa 3
+## Notifications and support dashboard
 
-`POST /conversations/{id}/tickets` acceptă câmpul opțional `impact`: `individual`, `team` sau `organization`. Acesta este declarat de utilizator, nu generat de model. `GET /tickets` returnează impactul; utilizatorul nu poate schimba prioritatea.
-
-Prioritatea este `low`, `normal`, `high` sau `urgent`; pentru datele vechi migrarea păstrează default `normal`. Modificarea este support-only, cere `expected_version` dacă valoarea chiar se schimbă și este înregistrată în `ticket_events`.
-
-| Endpoint | Reguli |
+| Endpoint | Rules |
 |---|---|
-| `GET /support/dashboard?days=30` | support-only; zile între 1 și 365 |
-| `GET /notifications?limit=20&offset=0` | notificări proprii, paginație după created_at/id; numai tichetele accesibile |
-| `GET /notifications/unread-count` | număr necitit pentru destinatar |
-| `PATCH /notifications/{id}/read` | marchează notificarea destinatarului ca citită; 404 dacă nu este accesibilă |
+| `GET /support/dashboard?days=30` | Support only; `days` between 1 and 365 |
+| `GET /notifications?limit=20&offset=0` | Own notifications for accessible tickets; newest first by timestamp/ID; limit 1–50 |
+| `GET /notifications/unread-count` | Own unread count for accessible tickets |
+| `PATCH /notifications/{id}/read` | Marks an accessible notification belonging to the recipient as read; otherwise 404 |
 
-Notificările sunt persistente și deduplicate în tranzacția acțiunii-sursă. Răspunsurile publice notifică cealaltă parte (proprietarul și agentul atribuit); dacă tichetul este neatribuit, răspunsul proprietarului notifică echipa support. Notele interne nu notifică. Atribuirea și schimbarea statusului notifică proprietarul și agentul relevant, exceptând actorul. Polling-ul UI este la 30 secunde; nu se trimit emailuri.
+Notifications persist and deduplicate within the source action's transaction. Public replies notify the owner and assigned agent, excluding the actor; an owner's reply on an unassigned ticket also notifies the support team. Internal notes do not notify. Assignment notifies the owner and new assignee, excluding the actor. Support status changes notify the owner; reopening notifies reply recipients of both the reply and status change. The UI polls every 30 seconds; there is no email delivery.
 
-Dashboardul folosește o fereastră mobilă `[acum - days, acum]`, filtrată după `tickets.created_at`. Numerele pe status, categorie și prioritate și totalul neatribuit descriu tichetele create în interval. Primul răspuns este cel mai timpuriu mesaj public (`reply` sau `resolution`) al unui autor support, minus `tickets.created_at`; notele interne și mesajele user/AI sunt excluse. Prima rezolvare folosește `first_resolved_at - created_at`, câmp stabilit la prima tranziție în resolved. Mediile includ doar tichetele cu eveniment cunoscut; numărul fără eveniment este raportat separat. Datele istorice necunoscute rămân necunoscute. Valorile sunt descriptive, nu SLA-uri contractuale.
+The dashboard selects tickets whose `created_at` falls in the rolling interval `[now - days, now]`. Status, final-category, priority and unassigned counts describe that cohort, rather than the entire backlog. Timing metrics are arithmetic means in seconds:
 
-## Revizuire și export ML — etapa 4
+- First reply: earliest public support message of kind `reply` or `resolution`, minus ticket creation. Internal notes and reopening reasons are excluded.
+- First resolution: `first_resolved_at` minus ticket creation, including tickets subsequently reopened.
+- Missing reply/resolution timestamps are excluded from the corresponding average and reported as separate counts. An average with no eligible observations is `null`.
 
-| Endpoint | Reguli |
+These are descriptive timings, not SLA measurements. Reply/resolution events can occur after the cohort's creation interval.
+
+## Explicit category review and ML export
+
+| Endpoint | Rules |
 |---|---|
-| `POST /tickets/{id}/category-review` | numai support; `verified_category`, `request_id` UUID și `reason` opțional (maximum 1000 caractere); salvează reviewerul, timpul, versiunea modelului tichetului și hash-ul textului exact folosit pentru clasificare |
-| `GET /tickets/{id}/category-review` | numai support; returnează revizuirea activă sau `review: null` |
-| `GET /support/category-review-export?limit=5000` | numai support; CSV cu exemple active aprobate explicit, limită 1–10000 |
+| `POST /tickets/{id}/category-review` | Support only; `verified_category`, UUID `request_id`, optional `reason` of up to 1000 trimmed characters |
+| `GET /tickets/{id}/category-review` | Support only; returns the active review or `review: null` |
+| `GET /support/category-review-export?limit=5000` | Support only; CSV of active, explicitly reviewed examples; limit 1–10000 |
 
-Corectarea `final_category` nu aprobă automat o mostră. Revizuirea păstrează eticheta separată. O modificare ulterioară a titlului, descrierii sau categoriei finale invalidează revizuirea prin trigger DB; review-ul vechi rămâne pentru proveniență, dar nu mai este exportabil. Un retry identic cu același request ID întoarce aceeași înregistrare; reutilizarea lui cu altă etichetă/motiv produce 409.
+Review records retain the reviewer, timestamp, ticket model version and SHA-256 hash of the exact classification text (`title + "\n" + description`). Changing `final_category` alone does not approve an example. A new review invalidates earlier active reviews for that ticket. A database trigger invalidates active reviews if title, description or final category changes; old records remain for provenance. An identical retry returns the original record, even if it has since been invalidated; reusing the request ID with a different label or reason returns 409.
 
-Exportul conține doar `ticket_id`, textul de clasificare (titlu + descriere), `label`, hash-ul textului, `model_version`, `reviewer_id` și `reviewed_at`. Exclude conversația AI, răspunsurile și notele interne, emailuri, parole și tokenuri. Valorile text care încep cu caractere interpretabile ca formule de spreadsheet sunt prefixate cu apostrof în CSV; hash-ul rămâne cel al textului original din tichet. CSV-ul descărcat este local și nu trebuie comis în Git. Înainte de reutilizare, suportul trebuie să verifice și să anonimizeze manual textul; revizuirea categoriei nu garantează că textul nu conține date personale.
+The CSV columns are `ticket_id`, `text`, `label`, `text_sha256`, `model_version`, `reviewer_id` and `reviewed_at`. It does not include separate AI conversation, reply, internal-note, email, password or token fields. Ticket text can still contain personal information. Text whose first non-whitespace character is `=`, `+`, `-` or `@` is prefixed with an apostrophe for spreadsheet safety; the hash refers to the original text. Keep exports outside Git and inspect and anonymize them before reuse. Category review is not a privacy review.
+
+Backend and browser tests substitute inference while exercising real database behavior; the application server has no mock-inference switch. Recorded test and real-model results are in the [verification record](IMPLEMENTATION_PLAN.md).
